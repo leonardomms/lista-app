@@ -232,3 +232,5 @@ Próximo: Passo 1 (Supabase) e Passo 3 (camada de dados).
 - Versão automática: `versionCode` = número da execução e `versionName` = `0.1.<execução>` (variáveis `VERSION_CODE` e `VERSION_NAME`), para cada build instalar por cima do anterior.
 - Assinatura: com os 4 segredos da keystore, todo build é release assinado com a mesma chave. Sem eles, o log mostra um aviso: o APK de debug usa uma chave que muda a cada execução e os testadores não conseguem atualizar por cima (precisam desinstalar antes).
 - Sem mudanças na interface. `google-services.json` fica para o Passo 8 (Analytics).
+
+- Segredos da keystore de release (KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD) configurados: os builds agora saem assinados com a chave de release fixa.
