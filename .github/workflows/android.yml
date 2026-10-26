@@ -20,6 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       VERSION_CODE: ${{ github.run_number }}
+      VERSION_NAME: 0.1.${{ github.run_number }}
     steps:
       - uses: actions/checkout@v5
 
@@ -52,7 +53,7 @@ jobs:
             echo "tipo=release" >> "$GITHUB_OUTPUT"
           else
             echo "tipo=debug" >> "$GITHUB_OUTPUT"
-            echo "::warning::Segredos de assinatura ausentes: gerando APK de debug."
+            echo "::warning title=APK sem a chave de release::Segredos de assinatura ausentes (KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD). Gerando APK de debug, assinado com uma chave que muda a cada execução: quem testa NÃO vai conseguir atualizar por cima da versão anterior (precisa desinstalar antes). Rode o workflow Gerar keystore e crie os 4 segredos."
           fi
 
       - name: Gradle (release assinado)
@@ -91,3 +92,28 @@ jobs:
           name: lista-da-feira
           path: lista-da-feira-*.apk
           if-no-files-found: error
+
+      - name: Verificar segredos do Firebase
+        id: firebase
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          FIREBASE_APP_ID: ${{ secrets.FIREBASE_APP_ID }}
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          if [ -n "$FIREBASE_APP_ID" ] && [ -n "$FIREBASE_SERVICE_ACCOUNT" ]; then
+            echo "enviar=true" >> "$GITHUB_OUTPUT"
+            # notas da versão: a mensagem do último commit (sem a linha de co-autoria)
+            git log -1 --pretty=%B | grep -v '^Co-Authored-By:' > notas.txt
+          else
+            echo "::notice::Segredos FIREBASE_APP_ID/FIREBASE_SERVICE_ACCOUNT ausentes: pulando o envio ao Firebase App Distribution."
+          fi
+
+      - name: Enviar ao Firebase App Distribution (grupo amigos)
+        if: steps.firebase.outputs.enviar == 'true'
+        uses: wzieba/Firebase-Distribution-Github-Action@v1.7.1
+        with:
+          appId: ${{ secrets.FIREBASE_APP_ID }}
+          serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          groups: amigos
+          file: lista-da-feira-${{ github.run_number }}-${{ steps.tipo.outputs.tipo }}.apk
+          releaseNotesFile: notas.txt

@@ -226,3 +226,9 @@ Feito sem Android Studio: o APK sai só pelo GitHub Actions.
 - **Diferenças da referência:** o aviso do botão de voz dizia "Aqui no Claude, use o microfone do teclado…" e passou a dizer "Use o microfone do teclado para ditar." (o ditado nativo vem no Passo 8.5). "Membros" no modo local dava erro de script (também na referência) e agora mostra "No modo local não há membros.". O convite ainda fala do Claude e aponta para o link do artefato; isso muda no Passo 5.
 
 Próximo: Passo 1 (Supabase) e Passo 3 (camada de dados).
+
+### 26/10/2026 — Distribuição de testes pelo Firebase App Distribution
+- `android.yml` agora, em push na main e só se `FIREBASE_APP_ID` e `FIREBASE_SERVICE_ACCOUNT` existirem, envia o APK ao grupo `amigos` (ação `wzieba/Firebase-Distribution-Github-Action@v1.7.1`). Sem os segredos, o passo é pulado com um aviso, sem falhar. Notas da versão: a mensagem do último commit.
+- Versão automática: `versionCode` = número da execução e `versionName` = `0.1.<execução>` (variáveis `VERSION_CODE` e `VERSION_NAME`), para cada build instalar por cima do anterior.
+- Assinatura: com os 4 segredos da keystore, todo build é release assinado com a mesma chave. Sem eles, o log mostra um aviso: o APK de debug usa uma chave que muda a cada execução e os testadores não conseguem atualizar por cima (precisam desinstalar antes).
+- Sem mudanças na interface. `google-services.json` fica para o Passo 8 (Analytics).
