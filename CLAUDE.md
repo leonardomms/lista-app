@@ -1,0 +1,36 @@
+# Lista da Feira
+
+App de lista de compras colaborativa em tempo real, migrando de um artefato do Claude para um app Android (Vite + JS puro + Supabase + Capacitor). O plano completo está em `MIGRACAO.md`; siga os passos em ordem.
+
+## Referências
+- `referencia/lista-da-feira-claude.html`: versão original que funciona. É a fonte da verdade para visual, textos e comportamento.
+- `supabase/schema.sql`: esquema do banco com RLS, já testado. Mudanças no banco entram como migrations novas, nunca editando o que já rodou em produção.
+
+## Regras do projeto
+- A interface é em português do Brasil, com o tom curto e direto que já existe.
+- Visual escuro: fundo #0a0a0b com grade de pontinhos, acento laranja #ff6b1a, fontes Geist e Geist Mono. Sem gradiente laranja no fundo.
+- Não use IA nas funções "inteligentes": a categorização é um dicionário mais uma tabela `learned` por ambiente, e as sugestões são o ritmo de compra calculado a partir de `trips`.
+- Toda escrita é otimista (atualiza a tela na hora) e é confirmada pelo Realtime.
+- Permissões ficam no banco (RLS e funções `security definer`), nunca só na interface.
+- Segredos só em `.env` (nunca commitar). No app vai apenas a anon key.
+
+## Comandos
+- `npm run dev`: desenvolvimento no navegador
+- `npm run build && npx cap sync android`: atualizar o projeto Android
+- `npx cap open android`: abrir no Android Studio
+
+## Comportamentos que não podem se perder
+- Riscar: o item fica riscado no lugar por cerca de 0,6 s e depois desliza para o fim da categoria (o último riscado fica acima dos anteriores); o check fica cinza.
+- Categoria toda riscada: recolhe e vai para o fim; reabre se entrar um item novo nela.
+- Ao arrastar uma categoria, todas recolhem.
+- Lista toda riscada: tela "Compra finalizada", com opções de ver os itens riscados e de usar a lista de novo.
+- Enter cria o próximo item; Backspace num item vazio apaga e volta para o anterior.
+- Colar várias linhas cria vários itens.
+- Uma frase vira vários itens ("arroz, feijão, leite e pão" → 4 itens; "2 kg de arroz e 3 latas de atum" → 2; "papel higiênico" continua 1). Na dúvida, não divide. O chip da barra mostra "N itens" antes de enviar.
+- Escolher a categoria na mão ensina o app (`learned`).
+- Indicador de quem está online: até 3 avatares; com 4 ou mais, 2 avatares e "+N".
+- Sugestões: "Enviar sugestão" no menu do avatar; convite discreto na tela "Compra finalizada" a partir da 3ª compra (com × para dispensar); caixa de entrada só para o admin do app; aviso único "Você sugeriu, nós fizemos" para quem sugeriu.
+
+## Privacidade
+- Analytics e Clarity só depois do consentimento na primeira abertura.
+- Nunca envie o texto de itens, listas, ambientes ou nomes em eventos; no Clarity, mascare esses textos.
