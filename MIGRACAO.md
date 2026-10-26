@@ -211,3 +211,18 @@ Substituem o aviso que hoje só aparece com o app aberto.
 - [ ] Sugestão enviada aparece na sua caixa de entrada; ao marcar como feita, quem enviou vê "Você sugeriu, nós fizemos".
 - [ ] Com "Não, obrigado" na tela de privacidade, nenhum evento chega ao Firebase (confira no DebugView).
 - [ ] Nas gravações do Clarity, os textos dos itens e os nomes aparecem mascarados.
+
+---
+
+## Progresso
+
+### 26/10/2026 — Passo 2 + empacotamento + build na nuvem
+Feito sem Android Studio: o APK sai só pelo GitHub Actions.
+
+- **Projeto web (Passo 2):** Vite + JS puro. `index.html`, `src/styles.css` e módulos em `src/` (`ui`, `categorias`, `sugestoes`, `ambientes`, `voz`, `dados`, mais `estado`, `icones` e `main`). O código foi copiado da referência linha a linha, só com `import`/`export`. SortableJS e fontes Geist/Geist Mono pelo npm. Roda no modo local (`window.claude` ausente). `npm run build` sem erros; conferido no navegador: criar lista, dividir frase em itens, categorias automáticas, riscar (pausa e desce), categoria toda riscada recolhe, "Compra finalizada", Enter/Backspace nos itens, categoria escolhida na mão ensina o app.
+- **Capacitor Android (parte do Passo 6):** `br.com.listadafeira`, "Lista da Feira", webDir `dist`, fundo `#0a0a0b`. Botão Voltar: fecha a folha aberta; senão volta da lista para a tela inicial; na tela inicial sai do app. Ícone, splash e status bar ainda não foram ajustados.
+- **Assinatura:** `android/app/build.gradle` lê `KEYSTORE_FILE`, `KEYSTORE_PASSWORD`, `KEY_ALIAS` e `KEY_PASSWORD` do ambiente; `versionCode` vem de `VERSION_CODE` (número da execução no CI).
+- **GitHub Actions:** `gerar-keystore.yml` (manual, gera a keystore e publica por 1 dia) e `android.yml` (a cada push na main: APK de release assinado se os 4 segredos existirem, senão APK de debug; artefato `lista-da-feira`).
+- **Diferenças da referência:** o aviso do botão de voz dizia "Aqui no Claude, use o microfone do teclado…" e passou a dizer "Use o microfone do teclado para ditar." (o ditado nativo vem no Passo 8.5). "Membros" no modo local dava erro de script (também na referência) e agora mostra "No modo local não há membros.". O convite ainda fala do Claude e aponta para o link do artefato; isso muda no Passo 5.
+
+Próximo: Passo 1 (Supabase) e Passo 3 (camada de dados).
