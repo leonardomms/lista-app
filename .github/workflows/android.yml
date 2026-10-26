@@ -1,0 +1,95 @@
+# Gera o APK a cada push na main (ou manualmente).
+# Com os segredos KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS e KEY_PASSWORD: APK de release assinado.
+# Sem eles: APK de debug, para o build funcionar mesmo assim.
+name: Android APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    env:
+      VERSION_CODE: ${{ github.run_number }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: android-actions/setup-android@v3
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - run: npm ci
+      - run: npm run build
+      - run: npx cap sync android
+
+      - name: Decidir entre release e debug
+        id: tipo
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ] && [ -n "$KEYSTORE_PASSWORD" ] && [ -n "$KEY_ALIAS" ] && [ -n "$KEY_PASSWORD" ]; then
+            printf '%s' "$KEYSTORE_BASE64" | base64 --decode --ignore-garbage > "$RUNNER_TEMP/release.jks"
+            echo "tipo=release" >> "$GITHUB_OUTPUT"
+          else
+            echo "tipo=debug" >> "$GITHUB_OUTPUT"
+            echo "::warning::Segredos de assinatura ausentes: gerando APK de debug."
+          fi
+
+      - name: Gradle (release assinado)
+        if: steps.tipo.outputs.tipo == 'release'
+        working-directory: android
+        env:
+          KEYSTORE_FILE: ${{ runner.temp }}/release.jks
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon
+
+      - name: Gradle (debug)
+        if: steps.tipo.outputs.tipo == 'debug'
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Renomear o APK e mostrar o SHA-1 da chave
+        env:
+          TIPO: ${{ steps.tipo.outputs.tipo }}
+        run: |
+          set -euo pipefail
+          DEST="lista-da-feira-${{ github.run_number }}-$TIPO.apk"
+          cp "android/app/build/outputs/apk/$TIPO/app-$TIPO.apk" "$DEST"
+          BT="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -n 1)"
+          echo "APK: $DEST ($TIPO)"
+          "$BT/apksigner" verify --print-certs "$DEST" | grep -E 'SHA-1|SHA-256'
+          rm -f "$RUNNER_TEMP/release.jks"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lista-da-feira
+          path: lista-da-feira-*.apk
+          if-no-files-found: error
