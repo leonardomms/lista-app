@@ -234,3 +234,5 @@ Próximo: Passo 1 (Supabase) e Passo 3 (camada de dados).
 - Sem mudanças na interface. `google-services.json` fica para o Passo 8 (Analytics).
 
 - Segredos da keystore de release (KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD) configurados: os builds agora saem assinados com a chave de release fixa.
+
+- Áreas seguras no Android (barra de status cortando o topo): `MainActivity` agora desenha edge-to-edge igual no Android 13-15 e afasta o app das barras e do teclado com padding; `SystemBars.insetsHandling` = `disable` no `capacitor.config.json` (o WebView recebe env() = 0, sem espaço em dobro); o CSS usa `--safe-top/bottom/left/right` definidas uma vez em `:root` (FAB, barra de adicionar, sheets, toast e a tira do topo). Testado só pelo build; falta conferir no aparelho.

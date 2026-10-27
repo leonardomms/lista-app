@@ -13,13 +13,15 @@
   --body:"Geist", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --mono:"Geist Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
   color-scheme:dark;
+  /* áreas seguras: definidas uma vez. No Android o MainActivity já afasta o app das barras do sistema, então aqui valem 0; no navegador e no iOS vêm do env() */
+  --safe-top:env(safe-area-inset-top, 0px); --safe-bottom:env(safe-area-inset-bottom, 0px); --safe-left:env(safe-area-inset-left, 0px); --safe-right:env(safe-area-inset-right, 0px);
 }
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html,body{min-height:100%}
 body{background-color:var(--bg);background-image:radial-gradient(var(--dot) 1px, transparent 1.2px);background-size:18px 18px;background-attachment:fixed;color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.4;-webkit-tap-highlight-color:transparent;
-  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
-body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+  padding-left:max(16px, var(--safe-left));padding-right:max(16px, var(--safe-right))}
+body::before{content:"";position:fixed;inset:0 0 auto;height:var(--safe-top);z-index:10;background:var(--bg)}
 button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
 input{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
@@ -53,7 +55,7 @@ h1 em{font-style:normal;background:linear-gradient(90deg,var(--accent-2),var(--a
 .empty .basket{width:72px;height:72px;margin:0 auto 16px;border-radius:24px;background:var(--surface);border:1px solid var(--line);box-shadow:0 0 40px rgba(255,107,26,.18);display:grid;place-items:center;color:var(--accent)}
 .empty strong{display:block;color:var(--fg);font-size:18px;font-family:var(--display);margin-bottom:6px}
 
-.fab{position:fixed;right:max(20px, calc(env(safe-area-inset-right,0px) + 20px));bottom:calc(env(safe-area-inset-bottom,0px) + 24px);width:60px;height:60px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;box-shadow:var(--shadow),0 0 30px rgba(255,107,26,.45);z-index:20;transition:transform .15s}
+.fab{position:fixed;right:max(20px, calc(var(--safe-right) + 20px));bottom:calc(var(--safe-bottom) + 24px);width:60px;height:60px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;box-shadow:var(--shadow),0 0 30px rgba(255,107,26,.45);z-index:20;transition:transform .15s}
 .fab:active{transform:scale(.94)}
 @media (min-width:640px){.fab{right:calc(50% - 300px + 4px)}}
 
@@ -162,7 +164,7 @@ h1 em{font-style:normal;background:linear-gradient(90deg,var(--accent-2),var(--a
 .ro .item .txt{pointer-events:none}
 
 /* add bar */
-.addbar{position:fixed;left:0;right:0;bottom:0;z-index:15;padding:10px max(16px, env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 12px) max(16px, env(safe-area-inset-left,0px));background:linear-gradient(to top,var(--bg) 70%,transparent)}
+.addbar{position:fixed;left:0;right:0;bottom:0;z-index:15;padding:10px max(16px, var(--safe-right)) calc(var(--safe-bottom) + 12px) max(16px, var(--safe-left));background:linear-gradient(to top,var(--bg) 70%,transparent)}
 .addbar-in{max-width:600px;margin:0 auto;display:flex;align-items:center;gap:8px;background:rgba(28,26,27,.9);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-radius:999px;padding:6px;box-shadow:var(--shadow),0 0 40px rgba(255,107,26,.12);border:1px solid var(--line-strong)}
 .addbar-in:focus-within{border-color:rgba(255,107,26,.5)}
 #addInput{caret-color:var(--accent)}
@@ -179,7 +181,7 @@ h1 em{font-style:normal;background:linear-gradient(90deg,var(--accent-2),var(--a
 /* sheet */
 .scrim{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:40;opacity:0;transition:opacity .2s}
 .scrim.on{opacity:1}
-.sheet{position:fixed;left:0;right:0;bottom:0;z-index:41;max-width:600px;margin:0 auto;background:var(--surface-solid);border:1px solid var(--line-strong);border-bottom:0;border-radius:24px 24px 0 0;padding:10px max(18px, env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 20px) max(18px, env(safe-area-inset-left,0px));transform:translateY(100%);transition:transform .25s cubic-bezier(.2,.8,.2,1);max-height:85vh;overflow:auto}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:41;max-width:600px;margin:0 auto;background:var(--surface-solid);border:1px solid var(--line-strong);border-bottom:0;border-radius:24px 24px 0 0;padding:10px max(18px, var(--safe-right)) calc(var(--safe-bottom) + 20px) max(18px, var(--safe-left));transform:translateY(100%);transition:transform .25s cubic-bezier(.2,.8,.2,1);max-height:85vh;overflow:auto}
 .sheet.on{transform:none}
 .sheet .handle{width:40px;height:4px;border-radius:4px;background:var(--line);margin:0 auto 14px}
 .sheet h4{font-family:var(--display);font-size:20px;margin:0 0 4px;overflow-wrap:anywhere}
@@ -205,9 +207,9 @@ h1 em{font-style:normal;background:linear-gradient(90deg,var(--accent-2),var(--a
 .help .muted{color:var(--muted);font-size:14px}
 
 /* toast */
-.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 96px);transform:translate(-50%,20px);background:var(--fg);color:var(--bg);border-radius:14px;padding:10px 10px 10px 16px;display:flex;align-items:center;gap:12px;font-size:14px;font-weight:500;z-index:50;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;max-width:calc(100% - 32px)}
+.toast{position:fixed;left:50%;bottom:calc(var(--safe-bottom) + 96px);transform:translate(-50%,20px);background:var(--fg);color:var(--bg);border-radius:14px;padding:10px 10px 10px 16px;display:flex;align-items:center;gap:12px;font-size:14px;font-weight:500;z-index:50;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;max-width:calc(100% - 32px)}
 .toast.on{opacity:1;transform:translate(-50%,0);pointer-events:auto}
-.sheet.on ~ .toast{bottom:auto;top:calc(env(safe-area-inset-top,0px) + 16px)}
+.sheet.on ~ .toast{bottom:auto;top:calc(var(--safe-top) + 16px)}
 .toast button{color:#d34f05;font-weight:700;padding:6px 8px}
 .finish{text-align:center;padding:36px 12px 28px}
 .finish .ring{width:96px;height:96px;border-radius:50%;margin:0 auto 22px;background:linear-gradient(180deg,var(--accent-2),var(--accent));display:grid;place-items:center;color:var(--accent-ink);box-shadow:0 0 70px rgba(255,107,26,.55);animation:pop .5s cubic-bezier(.2,1.4,.4,1) both}
