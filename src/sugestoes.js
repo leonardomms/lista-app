@@ -1,7 +1,7 @@
 /* Sugestões: ritmo de compra de cada item e sugestões de quem usa o app. */
 import { keyOf, guessCat, allCats } from "./categorias.js";
 import { S, $, esc } from "./estado.js";
-import { itemsOf, write, onWriteError } from "./dados.js";
+import { itemsOf, write, onWriteError, newId } from "./dados.js";
 import { render, openSheet, closeSheet, toast } from "./ui.js";
 import { openProfile } from "./ambientes.js";
 import { ICON_PLUS, ICON_CHECK_XL, ICON_BACK } from "./icones.js";
@@ -13,7 +13,7 @@ export function logTrip(listId){
   if (S.readonly) return;
   const bought = itemsOf(listId).filter(i => i.checked && (i.text||"").trim());
   if (!bought.length) return;
-  const id = (listId + "-" + Date.now().toString(36)).slice(0, 190);
+  const id = newId();
   write("history", id, {listId, at: Date.now(), items: bought.map(i => ({k: keyOf(i.text), text: i.text, cat: i.cat})).filter(x => x.k)}, "set");
 }
 export function pastTrips(currentListId){
@@ -74,7 +74,8 @@ export const FB_KINDS = [["ideia", "Ideia"], ["problema", "Algo deu errado"], ["
 export const FB_PH = {ideia: "Ex.: queria poder colocar a quantidade de cada item", problema: "O que aconteceu? O que você esperava que acontecesse?", elogio: "O que você mais gosta no app?"};
 export function lsGet(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }
 export function lsSet(k, v){ try { localStorage.setItem(k, v); } catch(e){} }
-export function canFeedback(){ return S.mode === "remote" && !!S.myId && !S.readonly; }
+/* desligado até o Passo 7, que porta as sugestões para a tabela feedback */
+export function canFeedback(){ return false; }
 export function showFbPrompt(){ return canFeedback() && !lsGet("fb-prompt") && S.history.size >= 3; }
 export function openFeedback(from){
   let kind = "ideia";

@@ -10,12 +10,12 @@ import "./styles.css";
 import { Capacitor } from "@capacitor/core";
 import { App } from "@capacitor/app";
 import { S, $ } from "./estado.js";
-import { render, bindEvents, closeSheet, goHome, setupRoom } from "./ui.js";
+import { render, bindEvents, closeSheet, goHome } from "./ui.js";
 import { CapacitorUpdater } from "@capgo/capacitor-updater";
 import { registrarEventosOta } from "./versao.js";
 import { bindVoz } from "./voz.js";
-import { P, loadProfile, createEnv, joinEnv, switchEnv, migrateLegacy, startLocal } from "./ambientes.js";
-import { afterBootFeedback } from "./sugestoes.js";
+import { startLocal, startRemote } from "./ambientes.js";
+import * as D from "./data.js";
 
 /* OTA (Capgo): confirma que este código abriu bem; sem isso o plugin volta para a versão anterior. Só no app nativo. */
 if (Capacitor.isNativePlatform()) { registrarEventosOta(); CapacitorUpdater.notifyAppReady().catch(() => {}); }
@@ -35,38 +35,23 @@ if (Capacitor.isNativePlatform()) {
 /* ---------------- boot ---------------- */
 render();
 (async function boot(){
-  const c = window.claude;
-  if (!c || typeof c.use !== "function") { startLocal(); return; }
-  let db = null;
-  try { db = await c.use("db"); } catch(e){}
-  if (!db) { startLocal(); return; }
-  S.mode = "remote"; S.db = db; render();
-  let u = null;
-  try { u = await c.use("user"); } catch(e){}
-  if (u) {
-    S.userApi = u;
-    try { S.myId = await u.id(); } catch(e){}
-    try { const w = await u.can("data.write"); if (w === false) S.readonly = true; } catch(e){}
-    try { const me = await u.me(); S.meName = (me && me.name) || ""; S.meColor = (me && me.color) || ""; } catch(e){}
-    try { S.isOwner = await u.isOwner(); } catch(e){}
-  }
-  await loadProfile();
-  const inv = /^#e-([A-Za-z0-9]+)$/.exec(location.hash || "");
-  if (!P.envs.length && !S.readonly) {
-    let owner = false; try { owner = u ? await u.isOwner() : false; } catch(e){}
-    let legacy = false;
-    if (owner) { try { legacy = !(await db.collection("lists").limit(1).get()).empty; } catch(e){} }
-    if (legacy || !inv) {
-      S.migrating = legacy; render();
-      const id = await createEnv("Minha casa");
-      if (id && legacy) await migrateLegacy(db, id);
-      S.migrating = false;
-    }
-  }
-  if (inv) { await joinEnv(inv[1]); }
-  if (!P.envs.length && !S.readonly) await createEnv("Minha casa");
-  if (!S.env && P.envs.length) switchEnv(P.current && P.envs.some(e => e.id === P.current) ? P.current : P.envs[0].id);
-  S.bootDone = true; render();
-  afterBootFeedback();
-  c.use("room").then(r => { if (r) { S.room = r; setupRoom(); } }).catch(()=>{});
+  /* sem configuração do Supabase ou sem sessão (o login chega no Passo 4): modo local, como antes */
+  if (!D.enabled) { startLocal(); return; }
+  let session = null;
+  try { session = (await D.sb.auth.getSession()).data.session; } catch(e){}
+  /* entrou ou saiu uma conta: recarrega para recomeçar do zero no modo certo */
+  const uid = session ? session.user.id : null;
+  D.sb.auth.onAuthStateChange((_ev, s) => { if ((s ? s.user.id : null) !== uid) location.reload(); });
+  /* só no desenvolvimento: permite testar com um usuário criado no painel do Supabase (signInWithPassword) */
+  if (import.meta.env.DEV) window.__sb = D.sb;
+  if (!session) { startLocal(); return; }
+
+  S.myId = uid; S.mode = "remote"; S.userApi = {profiles: D.fetchProfiles};
+  try {
+    const me = (await D.fetchProfiles([uid]))[uid] || {};
+    S.meName = me.name || ""; S.meColor = me.color || "";
+    S.profiles[uid] = {name: S.meName, color: S.meColor};
+  } catch(e){}
+  render();
+  await startRemote();
 })();

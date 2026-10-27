@@ -427,7 +427,7 @@ export function deleteList(){
   const id = S.listId; const its = itemsOf(id);
   S.view = "home"; S.listId = null;
   write("lists", id, null, "del");
-  its.forEach(i => write("items", i.id, null, "del"));
+  its.forEach(i => write("items", i.id, null, "del", {localOnly: true}));
   render(); announce();
   toast("Lista excluída");
 }
