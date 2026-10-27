@@ -3,6 +3,7 @@ import { S, shopping, expanded, $, esc } from "./estado.js";
 import { LS_KEY, loadLocal, enqueue, onWriteError } from "./dados.js";
 import { render, liMap, secMap, announce, openList, flushAll, updateAddChip, openSheet, closeSheet, watchChange, toast } from "./ui.js";
 import { sgHidden, canFeedback, openFeedback, openInbox } from "./sugestoes.js";
+import { versaoTexto, carregarVersao } from "./versao.js";
 import { ICON_COPY, ICON_PEOPLE, ICON_TEAM, ICON_WA, ICON_MAIL, ICON_CHAT, ICON_INBOX, ICON_BACK, ICON_PENCIL_L, ICON_PLUS_L, ICON_KEY, ICON_EXIT } from "./icones.js";
 
 export function openHelp(){
@@ -299,7 +300,8 @@ export function openProfile(view){
       ${canFeedback() ? `<button data-act="feedback">${ICON_CHAT}Enviar sugestão</button>` : ""}
       ${S.isOwner && S.mode === "remote" ? `<button data-act="inbox">${ICON_INBOX}Sugestões recebidas${S.fbUnread ? ` <span class="chip">${S.fbUnread} nova${S.fbUnread > 1 ? "s" : ""}</span>` : ""}</button>` : ""}
       ${P.envs.length > 1 ? `<button class="red" data-act="leave">${ICON_EXIT}Sair de “${esc(envName(cur))}”</button>` : ""}
-    </div><div id="leaveBox"></div>`, body => {
+    </div><div id="leaveBox"></div><p class="app-version" id="appVersion">${esc(versaoTexto)}</p>`, body => {
+    carregarVersao().then(t => { const el = $("appVersion"); if (el) el.textContent = t; });
     body.onclick = e => {
       const r = e.target.closest("[data-env]");
       if (r) { if (r.dataset.env !== S.env) { switchEnv(r.dataset.env); toast(`Agora em “${envName(r.dataset.env)}”`); } closeSheet(); return; }
