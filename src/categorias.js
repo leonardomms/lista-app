@@ -1,8 +1,7 @@
 /* Categorias: dicionário de palavras, divisão de frases em itens e o que o app aprende (sem IA). */
 import { S, $, esc } from "./estado.js";
-import { saveLocal, enqueue, write, onWriteError } from "./dados.js";
+import { saveLocal, write, writeEnvConfig } from "./dados.js";
 import { render, openSheet, toast } from "./ui.js";
-import { envPath } from "./ambientes.js";
 import { ICON_TRASH, ICON_UNDO, ICON_SPARK } from "./icones.js";
 
 /* ---------------- categorias ---------------- */
@@ -114,8 +113,7 @@ export function learn(text, cat){
 }
 export function writeLearned(){
   if (S.mode !== "remote") { saveLocal(); return; }
-  const body = {map: S.learned};
-  enqueue(envPath("config/learned"), () => S.db.doc(envPath("config/learned")).set(body)).catch(onWriteError);
+  writeEnvConfig({learned: S.learned}, true);     // quem não é admin fica só com o aprendizado desta sessão
 }
 export function builtinCat(text){
   const t = norm(text); if (!t) return null;
@@ -151,8 +149,7 @@ export function writeCats(){
   if (S.readonly) return;
   render();
   if (S.mode !== "remote") { saveLocal(); return; }
-  const body = {list:S.customCats, overrides:S.catOverrides};
-  enqueue(envPath("config/categories"), () => S.db.doc(envPath("config/categories")).set(body)).catch(onWriteError);
+  writeEnvConfig({custom_categories: S.customCats, category_overrides: S.catOverrides});
 }
 export function patchCat(id, patch){
   if (S.readonly) return;
