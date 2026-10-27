@@ -248,3 +248,4 @@ Próximo: Passo 1 (Supabase) e Passo 3 (camada de dados).
   4. No GitHub: Settings → Secrets and variables → Actions → New repository secret, nome `CAPGO_API_KEY`, valor a chave.
 - **Aviso:** a primeira versão com o plugin precisa ser instalada como atualização normal de APK, pelo Firebase App Tester. O OTA só funciona a partir dessa versão em diante; aparelhos com APK mais antigo não recebem bundles.
 - Versão do app no menu do avatar (texto pequeno no fim): lê a versão do APK com `App.getInfo()` e, se houver bundle OTA diferente, mostra "Versão 0.1.7 · OTA 0.1.9"; no navegador mostra "Versão dev" (`src/versao.js`).
+- O segredo `CAPGO_API_KEY` foi adicionado e o primeiro bundle OTA foi enviado ao Capgo (canal `production`, app `br.com.listadafeira`) por este push.
