@@ -12,12 +12,13 @@ import { App } from "@capacitor/app";
 import { S, $ } from "./estado.js";
 import { render, bindEvents, closeSheet, goHome, setupRoom } from "./ui.js";
 import { CapacitorUpdater } from "@capgo/capacitor-updater";
+import { registrarEventosOta } from "./versao.js";
 import { bindVoz } from "./voz.js";
 import { P, loadProfile, createEnv, joinEnv, switchEnv, migrateLegacy, startLocal } from "./ambientes.js";
 import { afterBootFeedback } from "./sugestoes.js";
 
 /* OTA (Capgo): confirma que este código abriu bem; sem isso o plugin volta para a versão anterior. Só no app nativo. */
-if (Capacitor.isNativePlatform()) CapacitorUpdater.notifyAppReady().catch(() => {});
+if (Capacitor.isNativePlatform()) { registrarEventosOta(); CapacitorUpdater.notifyAppReady().catch(() => {}); }
 
 bindEvents();
 bindVoz();
