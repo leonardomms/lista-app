@@ -236,3 +236,14 @@ Próximo: Passo 1 (Supabase) e Passo 3 (camada de dados).
 - Segredos da keystore de release (KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD) configurados: os builds agora saem assinados com a chave de release fixa.
 
 - Áreas seguras no Android (barra de status cortando o topo): `MainActivity` agora desenha edge-to-edge igual no Android 13-15 e afasta o app das barras e do teclado com padding; `SystemBars.insetsHandling` = `disable` no `capacitor.config.json` (o WebView recebe env() = 0, sem espaço em dobro); o CSS usa `--safe-top/bottom/left/right` definidas uma vez em `:root` (FAB, barra de adicionar, sheets, toast e a tira do topo). Testado só pelo build; falta conferir no aparelho.
+
+### 27/10/2026 — Atualizações pelo ar (OTA) com Capgo
+- **Como funciona:** o app (`@capgo/capacitor-updater`, `autoUpdate: true` no `capacitor.config.json`) pergunta ao Capgo, ao abrir, se há código web novo no canal `production`. Se houver, baixa em segundo plano e aplica na próxima abertura, sem instalar APK. `notifyAppReady()` roda no começo do `src/main.js` (só no app nativo): se a versão nova não abrir, o plugin volta sozinho para a anterior.
+- **No GitHub Actions:** em push na `main`, depois do envio ao Firebase, o `android.yml` roda `@capgo/cli@8.98.1 bundle upload` com o `dist` no canal `production`, versão `0.1.<execução>` (a mesma do `versionName` do APK). Sem o segredo `CAPGO_API_KEY` o passo é pulado, sem falhar.
+- **Quando ainda precisa de APK (Firebase App Tester):** primeira instalação e qualquer mudança nativa (plugin novo, permissões, `capacitor.config.json`, `MainActivity`, `AndroidManifest`).
+- **O que você faz uma vez (manual):**
+  1. Criar a conta em https://capgo.app.
+  2. Registrar o app com o pacote `br.com.listadafeira` (no painel, "Add app", ou `npx @capgo/cli@8.98.1 app add br.com.listadafeira`). O canal `production` precisa existir e ser o padrão dos aparelhos.
+  3. Criar a chave de API com permissão de upload (painel → API keys).
+  4. No GitHub: Settings → Secrets and variables → Actions → New repository secret, nome `CAPGO_API_KEY`, valor a chave.
+- **Aviso:** a primeira versão com o plugin precisa ser instalada como atualização normal de APK, pelo Firebase App Tester. O OTA só funciona a partir dessa versão em diante; aparelhos com APK mais antigo não recebem bundles.

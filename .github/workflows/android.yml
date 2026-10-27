@@ -117,3 +117,29 @@ jobs:
           groups: amigos
           file: lista-da-feira-${{ github.run_number }}-${{ steps.tipo.outputs.tipo }}.apk
           releaseNotesFile: notas.txt
+
+      # OTA: o código web novo chega aos aparelhos sem instalar outro APK (só mudanças nativas exigem APK).
+      - name: Verificar segredo do Capgo
+        id: capgo
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
+        run: |
+          if [ -n "$CAPGO_API_KEY" ]; then
+            echo "enviar=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::Segredo CAPGO_API_KEY ausente: pulando o envio do bundle OTA ao Capgo."
+          fi
+
+      - name: Enviar o bundle OTA ao Capgo (canal production)
+        if: steps.capgo.outputs.enviar == 'true'
+        env:
+          CAPGO_API_KEY: ${{ secrets.CAPGO_API_KEY }}
+        run: |
+          # a versão do bundle segue o versionName do APK: 0.1.<execução>
+          npx --yes @capgo/cli@8.98.1 bundle upload \
+            --apikey "$CAPGO_API_KEY" \
+            --channel production \
+            --bundle "0.1.${{ github.run_number }}" \
+            --path dist \
+            --comment "$(git log -1 --pretty=%s)"

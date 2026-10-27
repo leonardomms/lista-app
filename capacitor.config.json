@@ -7,6 +7,9 @@
     "SystemBars": {
       "insetsHandling": "disable",
       "style": "DARK"
+    },
+    "CapacitorUpdater": {
+      "autoUpdate": true
     }
   }
 }
