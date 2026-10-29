@@ -13,7 +13,7 @@ export const sb = enabled ? createClient(URL, KEY) : null;
 /* diagnóstico mostrado no menu: último erro do login e se há sessão */
 export const diag = {err: "", session: false};
 export const diagLinha = () => "Supabase: " + (enabled ? "on" : "off") + " | sessão: " + (diag.session ? "sim" : "não") + " | erro: " + (diag.err || "nenhum")
-  + (enabled ? "" : " | url: " + (!urlBruta ? "vazia" : URL ? "ok" : "invalida") + " | chave: " + (KEY ? "ok" : "vazia"));
+  + (enabled ? "" : " | url: " + (!urlBruta ? "vazia" : URL ? "ok" : "invalida (" + urlBruta.length + " car., começa com " + JSON.stringify(urlBruta.slice(0, 12)) + ")") + " | chave: " + (KEY ? "ok" : "vazia"));
 
 /* ---------------- conversão de campos ---------------- */
 const ms = t => t ? new Date(t).getTime() : 0;
