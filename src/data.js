@@ -2,18 +2,21 @@
    Realtime e presença. Não mexe no estado da tela: quem chama (dados.js, ambientes.js) aplica o resultado. */
 import { createClient } from "@supabase/supabase-js";
 
-/* só a origem da URL (sem /rest/v1/ nem barra final) e chave sem espaços */
-const origem = v => { try { return v && v.trim() ? new URL(v.trim()).origin : ""; } catch(e){ return ""; } };
-const urlBruta = (import.meta.env.VITE_SUPABASE_URL || "").trim();
-const URL = origem(urlBruta);
-const KEY = (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY || "").trim();
+/* só a origem da URL (sem /rest/v1/ nem barra final); tira aspas, espaços e caracteres invisíveis.
+   Atenção: não nomear nada de URL aqui, para não sombrear o URL global usado em new URL(). */
+const limpa = v => String(v || "").replace(/[​-‍﻿]/g, "").trim().replace(/^["']+|["']+$/g, "").trim();
+const origem = v => { try { return v ? new URL(v).origin : ""; } catch(e){ return ""; } };
+const urlBruta = limpa(import.meta.env.VITE_SUPABASE_URL);
+const SB_URL = origem(urlBruta);
+const KEY = limpa(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY);
 /* sem configuração (ex.: build sem .env), o app continua no modo local */
-export const enabled = !!(URL && KEY);
-export const sb = enabled ? createClient(URL, KEY) : null;
+export const enabled = !!(SB_URL && KEY);
+export const sb = enabled ? createClient(SB_URL, KEY) : null;
 /* diagnóstico mostrado no menu: último erro do login e se há sessão */
 export const diag = {err: "", session: false};
-export const diagLinha = () => "Supabase: " + (enabled ? "on" : "off") + " | sessão: " + (diag.session ? "sim" : "não") + " | erro: " + (diag.err || "nenhum")
-  + (enabled ? "" : " | url: " + (!urlBruta ? "vazia" : URL ? "ok" : "invalida (" + urlBruta.length + " car., começa com " + JSON.stringify(urlBruta.slice(0, 12)) + ")") + " | chave: " + (KEY ? "ok" : "vazia"));
+const codigos = s => [...new Set(s.match(/[^a-z0-9.:/-]/g) || [])].map(c => "U+" + c.codePointAt(0).toString(16).toUpperCase().padStart(4, "0")).join(",");
+export const diagLinha = () => { const estranhos = codigos(urlBruta) ? ", fora do padrão: " + codigos(urlBruta) : ""; return "Supabase: " + (enabled ? "on" : "off") + " | sessão: " + (diag.session ? "sim" : "não") + " | erro: " + (diag.err || "nenhum")
+  + (enabled ? "" : " | url: " + (!urlBruta ? "vazia" : SB_URL ? "ok" : "invalida (" + urlBruta.length + " car., começa com " + JSON.stringify(urlBruta.slice(0, 12)) + ", termina com " + JSON.stringify(urlBruta.slice(-12)) + estranhos + ")") + " | chave: " + (KEY ? "ok" : "vazia")); };
 
 /* ---------------- conversão de campos ---------------- */
 const ms = t => t ? new Date(t).getTime() : 0;
