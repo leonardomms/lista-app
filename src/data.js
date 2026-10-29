@@ -7,6 +7,9 @@ const KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VIT
 /* sem configuração (ex.: build sem .env), o app continua no modo local */
 export const enabled = !!(URL && KEY);
 export const sb = enabled ? createClient(URL, KEY) : null;
+/* diagnóstico mostrado no menu: último erro do login e se há sessão */
+export const diag = {err: "", session: false};
+export const diagLinha = () => "Supabase: " + (enabled ? "on" : "off") + " | sessão: " + (diag.session ? "sim" : "não") + " | erro: " + (diag.err || "nenhum");
 
 /* ---------------- conversão de campos ---------------- */
 const ms = t => t ? new Date(t).getTime() : 0;
@@ -89,8 +92,8 @@ export async function updateEnvPrefs(env, p){
 /* TEMPORÁRIO (até o login com Google, Passo 4): com VITE_DEV_ANON_LOGIN=true e sem sessão, entra como anônimo.
    Para remover: apague esta função, a linha que a chama no main.js e a variável. */
 export async function devAnonLogin(){
-  if (import.meta.env.VITE_DEV_ANON_LOGIN !== "true") return null;
-  try { const { data, error } = await sb.auth.signInAnonymously(); return error ? null : data.session; } catch(e){ return null; }
+  if (import.meta.env.VITE_DEV_ANON_LOGIN !== "true") { diag.err = "VITE_DEV_ANON_LOGIN != true"; return null; }
+  try { const { data, error } = await sb.auth.signInAnonymously(); if (error) diag.err = error.message; return error ? null : data.session; } catch(e){ diag.err = (e && e.message) || String(e); return null; }
 }
 
 /* ---------------- ambientes e membros ---------------- */

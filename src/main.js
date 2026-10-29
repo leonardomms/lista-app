@@ -38,10 +38,11 @@ render();
   /* sem configuração do Supabase ou sem sessão (o login chega no Passo 4): modo local, como antes */
   if (!D.enabled) { startLocal(); return; }
   let session = null;
-  try { session = (await D.sb.auth.getSession()).data.session; } catch(e){}
+  try { session = (await D.sb.auth.getSession()).data.session; } catch(e){ D.diag.err = (e && e.message) || String(e); }
   if (!session) session = await D.devAnonLogin();   // TEMPORÁRIO: sai com o login do Passo 4
   /* entrou ou saiu uma conta: recarrega para recomeçar do zero no modo certo */
   const uid = session ? session.user.id : null;
+  D.diag.session = !!session;
   D.sb.auth.onAuthStateChange((_ev, s) => { if ((s ? s.user.id : null) !== uid) location.reload(); });
   /* só no desenvolvimento: permite testar com um usuário criado no painel do Supabase (signInWithPassword) */
   if (import.meta.env.DEV) window.__sb = D.sb;

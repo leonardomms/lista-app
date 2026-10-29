@@ -325,7 +325,7 @@ export function openProfile(view){
       ${canFeedback() ? `<button data-act="feedback">${ICON_CHAT}Enviar sugestão</button>` : ""}
       ${S.isOwner && S.mode === "remote" ? `<button data-act="inbox">${ICON_INBOX}Sugestões recebidas${S.fbUnread ? ` <span class="chip">${S.fbUnread} nova${S.fbUnread > 1 ? "s" : ""}</span>` : ""}</button>` : ""}
       ${P.envs.length > 1 ? `<button class="red" data-act="leave">${ICON_EXIT}Sair de “${esc(envName(cur))}”</button>` : ""}
-    </div><div id="leaveBox"></div><p class="app-version" id="appVersion">${esc(versaoTexto)}</p><p class="app-version" style="margin-top:4px">${esc(otaLinha())}</p>`, body => {
+    </div><div id="leaveBox"></div><p class="app-version" id="appVersion">${esc(versaoTexto)}</p><p class="app-version" style="margin-top:4px">${esc(otaLinha())}</p><p class="app-version" style="margin-top:4px">${esc(D.diagLinha())}</p>`, body => {
     carregarVersao().then(t => { const el = $("appVersion"); if (el) el.textContent = t; });
     body.onclick = e => {
       const r = e.target.closest("[data-env]");
