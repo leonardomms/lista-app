@@ -567,22 +567,41 @@ function openBlockMenu(cid){
     body.onclick = e => { if (e.target.closest('[data-act="del-block"]')) { closeSheet(); removeBlock(cid); } };
   });
 }
-/* toque longo no cabeçalho do bloco (fora da alça de arrastar e dos botões de ação); cancela se o dedo andar */
+/* toque longo (550 ms) em `sel` (fora de `skip`); cancela se o dedo andar; o toque que o termina não vira clique */
 let lpTimer = null, lpDone = false, lpX = 0, lpY = 0;
-function bindBlockLongPress(view){
+function bindLongPress(view, sel, skip, onPress){
   const cancel = () => { clearTimeout(lpTimer); lpTimer = null; };
   view.addEventListener("pointerdown", e => {
-    const h = e.target.closest(".cat-head"); lpDone = false;
-    if (!h || S.readonly || e.target.closest(".cat-grip, .cat-toggle")) return;
-    lpX = e.clientX; lpY = e.clientY; const cid = h.closest(".cat").dataset.cat;
-    cancel(); lpTimer = setTimeout(() => { lpTimer = null; lpDone = true; if (navigator.vibrate) navigator.vibrate(15); openBlockMenu(cid); }, 550);
+    const h = e.target.closest(sel); lpDone = false;
+    if (!h || S.readonly || (skip && e.target.closest(skip))) return;
+    lpX = e.clientX; lpY = e.clientY;
+    cancel(); lpTimer = setTimeout(() => { lpTimer = null; lpDone = true; if (navigator.vibrate) navigator.vibrate(15); onPress(h); }, 550);
   });
   view.addEventListener("pointermove", e => { if (lpTimer && Math.hypot(e.clientX - lpX, e.clientY - lpY) > 8) cancel(); });
   ["pointerup", "pointercancel", "pointerleave"].forEach(t => view.addEventListener(t, cancel));
   view.addEventListener("scroll", cancel, true);
-  view.addEventListener("contextmenu", e => { if (e.target.closest(".cat-head")) e.preventDefault(); });
-  /* o toque que terminou o toque longo não pode abrir o editor de categoria */
+  view.addEventListener("contextmenu", e => { if (e.target.closest(sel)) e.preventDefault(); });
   view.addEventListener("click", e => { if (lpDone) { lpDone = false; e.stopPropagation(); e.preventDefault(); } }, true);
+}
+
+/* remove uma lista da tela inicial: o banco apaga os itens em cascata; o desfazer recria a lista e depois os itens */
+function removeListById(id){
+  const l = S.lists.get(id); if (!l) return;
+  const its = itemsOf(id);
+  write("lists", id, null, "del");
+  its.forEach(i => write("items", i.id, null, "del", {localOnly: true}));
+  toast("Lista removida", () => {
+    write("lists", id, l, "set");
+    its.forEach(i => { const {id: iid, ...d} = i; myCreated.add(iid); write("items", iid, d, "set"); });
+  });
+}
+function openListCardMenu(id){
+  const l = S.lists.get(id); if (!l) return;
+  const n = itemsOf(id).length;
+  openSheet(`<h4>${esc(l.title || "Lista sem nome")}</h4><p class="sub">${n === 1 ? "1 item" : n + " itens"}</p>
+    <div class="menu"><button class="red" data-act="del-card">${ICON_TRASH}Remover lista</button></div>`, body => {
+    body.onclick = e => { if (e.target.closest('[data-act="del-card"]')) { closeSheet(); removeListById(id); } };
+  });
 }
 
 export function addBlankInCat(cat){
@@ -671,7 +690,8 @@ export function bindEvents(){
   $("cartToggle").onclick = () => { S.showCart = !S.showCart; render(); };
 
   const listView = $("listView");
-  bindBlockLongPress(listView);
+  bindLongPress(listView, ".cat-head", ".cat-grip, .cat-toggle", h => openBlockMenu(h.closest(".cat").dataset.cat));
+  bindLongPress($("homeBody"), ".lcard", null, c => openListCardMenu(c.dataset.open));
   listView.addEventListener("click", e => {
     const ck = e.target.closest(".check"); if (ck) { toggleItem(ck.closest(".item").dataset.id); return; }
     const mo = e.target.closest(".more"); if (mo) { openItemSheet(mo.closest(".item").dataset.id); return; }
