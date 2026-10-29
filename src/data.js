@@ -2,8 +2,10 @@
    Realtime e presença. Não mexe no estado da tela: quem chama (dados.js, ambientes.js) aplica o resultado. */
 import { createClient } from "@supabase/supabase-js";
 
-const URL = import.meta.env.VITE_SUPABASE_URL;
-const KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY;
+/* só a origem da URL (sem /rest/v1/ nem barra final) e chave sem espaços */
+const origem = v => { try { return v && v.trim() ? new URL(v.trim()).origin : ""; } catch(e){ return ""; } };
+const URL = origem(import.meta.env.VITE_SUPABASE_URL);
+const KEY = (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY || "").trim();
 /* sem configuração (ex.: build sem .env), o app continua no modo local */
 export const enabled = !!(URL && KEY);
 export const sb = enabled ? createClient(URL, KEY) : null;
