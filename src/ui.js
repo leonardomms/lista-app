@@ -123,7 +123,7 @@ export function renderList(){
   const sgHTML = (S.readonly || list.done || sgHidden.has(S.listId)) ? "" : suggestHTML(S.listId, its, list);
   if (sgEl._html !== sgHTML) { sgEl.innerHTML = sgHTML; sgEl._html = sgHTML; }
 
-  $("listEmpty").innerHTML = its.length ? "" : `<div class="empty"><div class="basket">${ICON_BASKET}</div><strong>Lista vazia</strong>${S.readonly?"":"Digite um item na barra de baixo. A categoria é sugerida sozinha: “pão” vai para Padaria, “banana” para Fruteira.<div style=\"margin-top:16px\"><button class=\"btn primary\" data-act=\"focus-add\">Adicionar item</button></div>"}</div>`;
+  $("listEmpty").innerHTML = its.length ? "" : `<div class="empty"><div class="basket">${ICON_BASKET}</div><strong>Lista vazia</strong>${S.readonly?"":"Digite um item na barra de baixo. A categoria é sugerida sozinha: “pão” vai para Padaria, “banana” para Fruteira."}</div>`;
 
   // seções por categoria
   const wrap = $("catsWrap");
@@ -396,7 +396,10 @@ export function flushDraft(id){
   const val = drafts.get(id); drafts.delete(id);
   const it = S.items.get(id);
   if (it && it.text !== val) write("items", id, {text: val}, "patch");
+  /* item criado pelo "+" de um bloco: a palavra digitada ali ensina a categoria do bloco */
+  if (it && blankManual.has(id) && val.trim()) { blankManual.delete(id); learn(val, it.cat); }
 }
+const blankManual = new Set();
 export function flushAll(){ [...drafts.keys()].forEach(flushDraft); flushTitle(); }
 export let titleTimer = null;
 export function flushTitle(){
@@ -455,6 +458,7 @@ export function submitAdd(){
   const v = inp.value.trim(); if (!v) return;
   const parts = splitItems(v);
   if (parts.length > 1) {
+    if (S.addCatManual && S.addCat) parts.forEach(t => learn(t, S.addCat));
     const ids = parts.map(t => addItem(t, S.addCatManual ? S.addCat : null)).filter(Boolean);
     toast(`${ids.length} itens adicionados`, () => ids.forEach(id => deleteItem(id, true)));
   } else {
@@ -548,10 +552,44 @@ export function openListMenu(){
 }
 
 
+/* remove o bloco: todos os itens da categoria nesta lista (com desfazer) */
+export function removeBlock(cid){
+  if (S.readonly || !S.listId) return;
+  const its = itemsOf(S.listId).filter(i => (i.cat || "outros") === cid);
+  if (!its.length) return;
+  its.forEach(i => { drafts.delete(i.id); write("items", i.id, null, "del"); });
+  toast(its.length === 1 ? "Bloco removido (1 item)" : `Bloco removido (${its.length} itens)`, () => its.forEach(i => { const {id, ...d} = i; myCreated.add(id); write("items", id, d, "set"); }));
+}
+function openBlockMenu(cid){
+  const n = itemsOf(S.listId).filter(i => (i.cat || "outros") === cid).length;
+  openSheet(`<h4>${esc(catById(cid).name)}</h4><p class="sub">${n === 1 ? "1 item" : n + " itens"} neste bloco</p>
+    <div class="menu"><button class="red" data-act="del-block">${ICON_TRASH}Remover bloco e ${n === 1 ? "1 item" : n + " itens"}</button></div>`, body => {
+    body.onclick = e => { if (e.target.closest('[data-act="del-block"]')) { closeSheet(); removeBlock(cid); } };
+  });
+}
+/* toque longo no cabeçalho do bloco (fora da alça de arrastar e dos botões de ação); cancela se o dedo andar */
+let lpTimer = null, lpDone = false, lpX = 0, lpY = 0;
+function bindBlockLongPress(view){
+  const cancel = () => { clearTimeout(lpTimer); lpTimer = null; };
+  view.addEventListener("pointerdown", e => {
+    const h = e.target.closest(".cat-head"); lpDone = false;
+    if (!h || S.readonly || e.target.closest(".cat-grip, .cat-toggle")) return;
+    lpX = e.clientX; lpY = e.clientY; const cid = h.closest(".cat").dataset.cat;
+    cancel(); lpTimer = setTimeout(() => { lpTimer = null; lpDone = true; if (navigator.vibrate) navigator.vibrate(15); openBlockMenu(cid); }, 550);
+  });
+  view.addEventListener("pointermove", e => { if (lpTimer && Math.hypot(e.clientX - lpX, e.clientY - lpY) > 8) cancel(); });
+  ["pointerup", "pointercancel", "pointerleave"].forEach(t => view.addEventListener(t, cancel));
+  view.addEventListener("scroll", cancel, true);
+  view.addEventListener("contextmenu", e => { if (e.target.closest(".cat-head")) e.preventDefault(); });
+  /* o toque que terminou o toque longo não pode abrir o editor de categoria */
+  view.addEventListener("click", e => { if (lpDone) { lpDone = false; e.stopPropagation(); e.preventDefault(); } }, true);
+}
+
 export function addBlankInCat(cat){
   if (S.readonly || !S.listId) return;
   const id = newId();
   myCreated.add(id);
+  blankManual.add(id);
   write("items", id, {listId:S.listId, text:"", cat, order:nextOrderInCat(S.listId, cat), checked:false, checkedAt:0, createdAt:Date.now(), by:S.myId||null}, "set");
   if (S.lists.get(S.listId) && S.lists.get(S.listId).done) write("lists", S.listId, {done:false}, "patch");
   const li = liMap.get(id); if (li) li.querySelector(".txt").focus();
@@ -633,6 +671,7 @@ export function bindEvents(){
   $("cartToggle").onclick = () => { S.showCart = !S.showCart; render(); };
 
   const listView = $("listView");
+  bindBlockLongPress(listView);
   listView.addEventListener("click", e => {
     const ck = e.target.closest(".check"); if (ck) { toggleItem(ck.closest(".item").dataset.id); return; }
     const mo = e.target.closest(".more"); if (mo) { openItemSheet(mo.closest(".item").dataset.id); return; }
