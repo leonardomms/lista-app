@@ -4,14 +4,16 @@ import { createClient } from "@supabase/supabase-js";
 
 /* só a origem da URL (sem /rest/v1/ nem barra final) e chave sem espaços */
 const origem = v => { try { return v && v.trim() ? new URL(v.trim()).origin : ""; } catch(e){ return ""; } };
-const URL = origem(import.meta.env.VITE_SUPABASE_URL);
+const urlBruta = (import.meta.env.VITE_SUPABASE_URL || "").trim();
+const URL = origem(urlBruta);
 const KEY = (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY || "").trim();
 /* sem configuração (ex.: build sem .env), o app continua no modo local */
 export const enabled = !!(URL && KEY);
 export const sb = enabled ? createClient(URL, KEY) : null;
 /* diagnóstico mostrado no menu: último erro do login e se há sessão */
 export const diag = {err: "", session: false};
-export const diagLinha = () => "Supabase: " + (enabled ? "on" : "off") + " | sessão: " + (diag.session ? "sim" : "não") + " | erro: " + (diag.err || "nenhum");
+export const diagLinha = () => "Supabase: " + (enabled ? "on" : "off") + " | sessão: " + (diag.session ? "sim" : "não") + " | erro: " + (diag.err || "nenhum")
+  + (enabled ? "" : " | url: " + (!urlBruta ? "vazia" : URL ? "ok" : "invalida") + " | chave: " + (KEY ? "ok" : "vazia"));
 
 /* ---------------- conversão de campos ---------------- */
 const ms = t => t ? new Date(t).getTime() : 0;
