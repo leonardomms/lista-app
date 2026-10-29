@@ -37,7 +37,13 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
 
       - run: npm ci
-      - run: npm run build
+      # o Vite grava estas variáveis no bundle: vale para o APK e para o bundle OTA (mesmo dist)
+      - name: Build web
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_DEV_ANON_LOGIN: ${{ vars.VITE_DEV_ANON_LOGIN }}
       - run: npx cap sync android
 
       - name: Decidir entre release e debug
