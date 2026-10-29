@@ -76,6 +76,23 @@ export async function updateEnv(env, patch){
   if (!rows || !rows.length) throw Object.assign(new Error("sem_permissao"), {code: "sem_permissao"});
 }
 
+/* categorias e "aprendido": qualquer membro, pela função update_env_prefs (supabase/migrations).
+   Se a função ainda não existe no banco, cai no update direto (só admin). */
+export async function updateEnvPrefs(env, p){
+  const { error } = await sb.rpc("update_env_prefs", {e: env, p_custom_categories: p.custom_categories ?? null, p_category_overrides: p.category_overrides ?? null, p_learned: p.learned ?? null});
+  if (!error) return;
+  if (error.code === "PGRST202") return updateEnv(env, p);
+  if (/sem_permissao/.test(error.message || "")) throw Object.assign(new Error("sem_permissao"), {code: "sem_permissao"});
+  throw error;
+}
+
+/* TEMPORÁRIO (até o login com Google, Passo 4): com VITE_DEV_ANON_LOGIN=true e sem sessão, entra como anônimo.
+   Para remover: apague esta função, a linha que a chama no main.js e a variável. */
+export async function devAnonLogin(){
+  if (import.meta.env.VITE_DEV_ANON_LOGIN !== "true") return null;
+  try { const { data, error } = await sb.auth.signInAnonymously(); return error ? null : data.session; } catch(e){ return null; }
+}
+
 /* ---------------- ambientes e membros ---------------- */
 export async function listEnvs(uid){
   const rows = await ok(sb.from("env_members").select("joined_at, envs(id, name)").eq("user_id", uid).eq("removed", false).order("joined_at"));

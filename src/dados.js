@@ -64,7 +64,7 @@ export function write(coll, id, data, mode, opts){
 /* colunas do ambiente (categorias e o que o app aprendeu); só admin pode gravar (RLS) */
 export function writeEnvConfig(patch, quiet){
   const env = S.env;
-  return enqueue("envs/" + env, () => D.updateEnv(env, patch)).catch(e => {
+  return enqueue("envs/" + env, () => D.updateEnvPrefs(env, patch)).catch(e => {
     if (e && e.code === "sem_permissao") {
       if (!quiet) toast("Só quem administra o ambiente pode mudar as categorias.");
       resyncEnv();

@@ -39,6 +39,7 @@ render();
   if (!D.enabled) { startLocal(); return; }
   let session = null;
   try { session = (await D.sb.auth.getSession()).data.session; } catch(e){}
+  if (!session) session = await D.devAnonLogin();   // TEMPORÁRIO: sai com o login do Passo 4
   /* entrou ou saiu uma conta: recarrega para recomeçar do zero no modo certo */
   const uid = session ? session.user.id : null;
   D.sb.auth.onAuthStateChange((_ev, s) => { if ((s ? s.user.id : null) !== uid) location.reload(); });
