@@ -5,7 +5,7 @@ import { S, shopping, myCreated, pendingBlank, expanded, hold, holdTimers, draft
 import { itemsOf, newId, write } from "./dados.js";
 import { openHelp, envName, openProfile } from "./ambientes.js";
 import { sgHidden, currentSuggestions, logTrip, suggestHTML, lsSet, showFbPrompt, openFeedback } from "./sugestoes.js";
-import { ICON_GRIP, ICON_CHECK, ICON_MORE, ICON_TRASH, ICON_UNDO, ICON_BROOM, ICON_COPY, ICON_CHECKBIG, ICON_PEOPLE, ICON_TAG, ICON_PENCIL, ICON_PLUS, ICON_CHECK_XL, ICON_CHEV, ICON_SPARK, ICON_BASKET } from "./icones.js";
+import { ICON_GRIP, ICON_CHECK, ICON_MORE, ICON_TRASH, ICON_UNDO, ICON_BROOM, ICON_COPY, ICON_CHECKBIG, ICON_PEOPLE, ICON_TAG, ICON_PLUS, ICON_CHECK_XL, ICON_CHEV, ICON_SPARK, ICON_BASKET } from "./icones.js";
 
 /* ---------------- render ---------------- */
 export function render(){
@@ -124,7 +124,7 @@ export function renderList(){
   const sgHTML = (S.readonly || list.done || sgHidden.has(S.listId)) ? "" : suggestHTML(S.listId, its, list);
   if (sgEl._html !== sgHTML) { sgEl.innerHTML = sgHTML; sgEl._html = sgHTML; }
 
-  $("listEmpty").innerHTML = its.length ? "" : `<p class="empty-line">${S.readonly ? "Lista vazia" : "Adicione o primeiro item"}</p>`;
+  $("listEmpty").innerHTML = "";
 
   // seções por categoria
   const wrap = $("catsWrap");
@@ -155,9 +155,12 @@ export function renderList(){
     sec.classList.toggle("all-done", allDone);
     if (!allDone) expanded.delete(cid);
     sec.classList.toggle("collapsed", allDone && !expanded.has(cid));
+    sec.classList.toggle("noitems", !arr.length);
+    sec.classList.toggle("selected", S.selectedCat === cid && !sec.classList.contains("collapsed"));
     if (wrap.children[idx] !== sec) wrap.insertBefore(sec, wrap.children[idx] || null);
     placeItems(sec.querySelector("ul"), arr, false, used);
   });
+  if (S.selectedCat && !(secMap.get(S.selectedCat) && secMap.get(S.selectedCat).classList.contains("selected"))) S.selectedCat = null;   // bloco sumiu ou recolheu
   for (const [cid, sec] of secMap) if (!cats.includes(cid)) { if (sec._sortable) sec._sortable.destroy(); sec.remove(); secMap.delete(cid); }
 
   $("cartSec").hidden = true;
@@ -189,7 +192,7 @@ export function renderList(){
       handle: ".cat-grip", draggable: ".cat", animation: 160, ghostClass: "sortable-ghost",
       onChoose(){ wrap.classList.add("reordering"); },
       onUnchoose(){ wrap.classList.remove("reordering"); },
-      onStart(){ S.dragging = true; },
+      onStart(){ S.dragging = true; selectCat(null); },
       onEnd(){
         S.dragging = false; wrap.classList.remove("reordering");
         const l = S.lists.get(S.listId); if (!l) return render();
@@ -207,13 +210,13 @@ export function renderList(){
 export function makeSection(cid){
   const sec = document.createElement("section");
   sec.className = "cat"; sec.dataset.cat = cid;
-  sec.innerHTML = `<div class="cat-head"><span class="cat-grip" aria-label="Arrastar categoria">${ICON_GRIP}</span><i class="sw"></i><button class="cat-name" aria-label="Editar categoria"><h3></h3>${ICON_PENCIL}</button><span class="n"></span><button class="cat-toggle" aria-label="Mostrar ou esconder itens riscados">${ICON_CHEV}</button></div><ul class="items" data-cat="${esc(cid)}"></ul><button class="add-in-cat">${ICON_PLUS}<span>Adicionar item</span></button>`;
+  sec.innerHTML = `<div class="cat-head"><span class="cat-grip" aria-label="Arrastar categoria">${ICON_GRIP}</span><i class="sw"></i><button class="cat-name" aria-label="Editar categoria"><h3></h3></button><span class="n"></span><button class="cat-toggle" aria-label="Mostrar ou esconder itens riscados">${ICON_CHEV}</button></div><ul class="items" data-cat="${esc(cid)}"></ul><button class="add-in-cat">${ICON_PLUS}<span>Adicionar item</span></button>`;
   const ul = sec.querySelector("ul");
   if (Sortable) {
     sec._sortable = Sortable.create(ul, {
       group: "items", handle: ".grip", animation: 160, ghostClass: "sortable-ghost", fallbackOnBody: true, filter: ".done", preventOnFilter: false,
       disabled: S.readonly,
-      onStart(){ S.dragging = true; },
+      onStart(){ S.dragging = true; selectCat(null); },
       onEnd(evt){
         S.dragging = false;
         const li = evt.item, id = li.dataset.id, cat = evt.to.dataset.cat;
@@ -252,10 +255,10 @@ export function makeLi(id){
   const li = document.createElement("li");
   li.className = "item"; li.dataset.id = id;
   li.innerHTML = `<span class="grip" aria-hidden="true">${ICON_GRIP}</span>
-    <button class="check" role="checkbox" aria-checked="false" aria-label="Riscar item">${ICON_CHECK}</button>
     <input class="txt" data-item-id="${esc(id)}" autocomplete="off" enterkeyhint="next" placeholder="Item" aria-label="Nome do item">
     <span class="tag" hidden><i></i><b></b></span>
-    <button class="more" aria-label="Opções do item">${ICON_MORE}</button>`;
+    <button class="more" aria-label="Opções do item">${ICON_MORE}</button>
+    <button class="check" role="checkbox" aria-checked="false" aria-label="Riscar item">${ICON_CHECK}</button>`;
   return li;
 }
 export function updateLi(li, it, isCart){
@@ -318,7 +321,13 @@ export function createList(){
   write("lists", id, {title:"", createdAt:now, done:false, catOrder:[]}, "set");
   openList(id, true);
 }
+/* bloco selecionado: só um por vez, não persiste; sem render, para a tela não pular debaixo do dedo */
+export function selectCat(cid){
+  S.selectedCat = cid || null;
+  secMap.forEach((sec, id) => sec.classList.toggle("selected", id === S.selectedCat && !sec.classList.contains("collapsed")));
+}
 export function openList(id, focusTitle){
+  selectCat(null);
   S.view = "list"; S.listId = id; S.addCatManual = false; S.peek = false;
   liMap.forEach(li => li.remove()); liMap.clear();
   secMap.forEach(s => { if (s._sortable) s._sortable.destroy(); s.remove(); }); secMap.clear();
@@ -328,6 +337,7 @@ export function openList(id, focusTitle){
   if (focusTitle) setTimeout(() => $("titleInput").focus(), 50);
 }
 export function goHome(){
+  selectCat(null);
   flushAll();
   const id = S.listId, l = S.lists.get(id);
   if (l && !S.readonly) {
@@ -692,6 +702,17 @@ export function bindEvents(){
   $("cartToggle").onclick = () => { S.showCart = !S.showCart; render(); };
 
   const listView = $("listView");
+  /* seleção do bloco: toque no cabeçalho, no texto de um item ou no vazio do bloco; fora de qualquer bloco desmarca.
+     Não seleciona ao tocar no check, no ⋮, nas alças nem no nome/seta da categoria; barra de adicionar, folhas e avisos não mexem */
+  document.addEventListener("pointerdown", e => {
+    if (S.view !== "list" || e.target.closest("#addbar, #sheet, #scrim, .toast")) return;
+    const sec = e.target.closest(".cat");
+    if (!sec) { if (S.selectedCat) selectCat(null); return; }
+    if (S.readonly || e.target.closest(".check, .more, .grip, .cat-grip, .cat-name, .cat-toggle")) return;
+    if (S.selectedCat !== sec.dataset.cat) selectCat(sec.dataset.cat);
+  });
+  /* o ⋮ aparece só com o item em edição: sem isto o campo perde o foco antes do clique e o botão some */
+  listView.addEventListener("mousedown", e => { if (e.target.closest(".more")) e.preventDefault(); });
   bindLongPress(listView, ".cat-head", ".cat-grip, .cat-toggle", h => openBlockMenu(h.closest(".cat").dataset.cat));
   bindLongPress($("homeBody"), ".lcard", null, c => openListCardMenu(c.dataset.open));
   listView.addEventListener("click", e => {

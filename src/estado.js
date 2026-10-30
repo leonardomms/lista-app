@@ -7,7 +7,7 @@ export const S = {
   loaded:{lists:false, items:false},
   view:"home", listId:null, search:"", showDone:false, showCart:true,
   readonly:false, peers:[], profiles:{}, dragging:false, pendingRender:false,
-  addCat:null, addCatManual:false
+  addCat:null, addCatManual:false, selectedCat:null
 };
 export const shopping = new Set();     // listas em modo compra (alguém riscou um item nesta sessão)
 export const myCreated = new Set();

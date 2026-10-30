@@ -93,18 +93,18 @@ h1 em{font-style:normal;background:linear-gradient(90deg,var(--accent-2),var(--a
 .note{font-size:13px;color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:14px}
 
 .cats-wrap{display:flex;flex-direction:column;gap:12px}
-.cat{background:linear-gradient(180deg,rgba(255,255,255,.03),transparent 40%),var(--surface);border:1px solid var(--line);border-radius:16px;padding:6px 6px 8px}
+.cat{background:linear-gradient(180deg,rgba(255,255,255,.03),transparent 40%),var(--surface);border:1px solid var(--line);border-radius:16px;padding:6px 6px 8px;transition:border-color .15s}
+.cat.selected{border-color:rgba(255,107,26,.7)}
 .cat-head{display:flex;align-items:center;gap:8px;padding:8px 8px 4px 4px}
 .cat-name{flex:1;display:flex;align-items:center;gap:6px;min-width:0;text-align:left;color:var(--muted);padding:4px 0}
-.cat-name svg{opacity:.55;flex:none}
 .cat-name h3{flex:none;min-width:0}
-.cat-name:hover svg{opacity:1;color:var(--accent-text)}
-.ro .cat-name{pointer-events:none}.ro .cat-name svg{display:none}
+.ro .cat-name{pointer-events:none}
 .cat-head h3{margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--mono);font-size:12px;font-weight:500;letter-spacing:.04em;text-transform:lowercase;color:var(--muted);flex:1}
 .cat-head .n{font-family:var(--mono);font-size:12px;color:var(--faint);font-variant-numeric:tabular-nums}
 .sw{width:10px;height:10px;border-radius:3px;background:var(--c);flex:none}
 .cat-grip{color:var(--faint);cursor:grab;touch-action:none;padding:4px 2px;display:grid;place-items:center}
-.add-in-cat{display:flex;align-items:center;gap:10px;width:100%;height:42px;padding:0 12px 0 36px;color:var(--muted);font-size:15px;border-radius:12px;text-align:left}
+.add-in-cat{display:flex;align-items:center;gap:10px;width:100%;height:42px;padding:0 12px 0 34px;color:var(--muted);font-size:15px;border-radius:12px;text-align:left;overflow:hidden;transition:height .15s,opacity .15s,visibility 0s}
+.cat:not(.selected):not(.noitems) .add-in-cat{height:0;opacity:0;pointer-events:none;visibility:hidden;transition:height .15s,opacity .15s,visibility 0s .15s}
 .add-in-cat:hover{color:var(--fg);background:rgba(255,255,255,.03)}
 .add-in-cat svg{color:var(--accent)}
 .ro .add-in-cat{display:none}
@@ -124,20 +124,21 @@ h1 em{font-style:normal;background:linear-gradient(90deg,var(--accent-2),var(--a
 .items{list-style:none;margin:0;padding:0;min-height:8px}
 .item{display:flex;align-items:center;gap:4px;border-radius:12px;min-height:46px;background:transparent}
 .item .grip{color:var(--faint);cursor:grab;touch-action:none;width:30px;height:44px;display:grid;place-items:center;flex:none}
-.item .check{width:24px;height:24px;border-radius:50%;border:1.6px solid var(--faint);display:grid;place-items:center;flex:none;transition:background .15s,border-color .15s;margin-right:8px;position:relative}
-.item .check::after{content:"";position:absolute;inset:-10px}
-.item .check svg{opacity:0;color:var(--accent-ink);transform:scale(.6);transition:opacity .15s,transform .15s}
-.item .check[aria-checked="true"]{background:var(--accent);border-color:var(--accent);box-shadow:0 0 12px rgba(255,107,26,.5)}
+.item .check{width:56px;align-self:stretch;min-height:46px;display:grid;place-items:center end;padding-right:8px;flex:none;position:relative}
+.item .check::before{content:"";grid-area:1/1;width:26px;height:26px;border-radius:50%;border:1.6px solid var(--faint);transition:background .15s,border-color .15s}
+.item .check svg{grid-area:1/1;justify-self:end;margin-right:6px;position:relative;opacity:0;color:var(--accent-ink);transform:scale(.6);transition:opacity .15s,transform .15s}
+.item .check[aria-checked="true"]::before{background:var(--accent);border-color:var(--accent);box-shadow:0 0 12px rgba(255,107,26,.5)}
 .item .check[aria-checked="true"] svg{opacity:1;transform:scale(1)}
 .item .txt{flex:1;min-width:0;background:none;border:0;outline:none;padding:12px 0;font-size:16px}
 .item .txt::placeholder{color:var(--faint)}
-.item .more{width:40px;height:44px;display:grid;place-items:center;color:var(--faint);flex:none;border-radius:10px}
+.item .more{width:40px;height:44px;display:none;place-items:center;color:var(--faint);flex:none;border-radius:10px}
+.item:focus-within .more{display:grid}
 .item .more:hover{color:var(--fg)}
 .item .txt{transition:color .25s}
-.item.done:not(.settling) .check[aria-checked="true"]{background:var(--surface-2);border-color:var(--surface-2);box-shadow:none}
+.item.done:not(.settling) .check[aria-checked="true"]::before{background:var(--surface-2);border-color:var(--surface-2);box-shadow:none}
 .item.done:not(.settling) .check[aria-checked="true"] svg{color:var(--muted)}
 .item.done:not(.settling) .txt{color:var(--faint)}
-.item .check{transition:background .35s,border-color .35s,box-shadow .35s}
+.item .check::before{transition:background .35s,border-color .35s,box-shadow .35s}
 .item.done .txt{color:var(--muted);text-decoration:line-through;text-decoration-color:var(--faint)}
 .cat.all-done .cat-head h3{text-decoration:line-through;text-decoration-color:var(--faint)}
 .item.done .grip{visibility:hidden}
@@ -146,7 +147,7 @@ h1 em{font-style:normal;background:linear-gradient(90deg,var(--accent-2),var(--a
 .sortable-ghost{opacity:.35}
 .sortable-chosen.item, .sortable-drag{background:var(--accent)!important;box-shadow:var(--shadow),var(--glow)}
 .sortable-chosen.item .txt,.sortable-chosen.item .grip,.sortable-chosen.item .more{color:var(--accent-ink)}
-.sortable-chosen.item .check{border-color:var(--accent-ink)}
+.sortable-chosen.item .check::before{border-color:var(--accent-ink)}
 .cat.sortable-ghost{opacity:.4}
 .cats-wrap.reordering .cat .items,.cats-wrap.reordering .cat .add-in-cat,.cat.collapsed .items,.cat.collapsed .add-in-cat{display:none}
 .cats-wrap.reordering .cat{padding-bottom:4px}
@@ -316,7 +317,6 @@ input.invite-text{height:40px;font-family:var(--mono);font-size:12px}
 .vz-act .btn{height:44px}
 
 /* passada minimalista: lista vazia e menu do avatar */
-.empty-line{text-align:center;color:var(--muted);font-size:14px;padding:40px 24px}
 .catchip.auto::after{content:none}
 .envline{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;margin-bottom:6px}
 .env-pick{display:flex;align-items:center;gap:10px;min-width:0;flex:1;text-align:left;font-size:16px;height:44px}
