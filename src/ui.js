@@ -100,6 +100,7 @@ export function renderList(){
     for (const [id, li] of liMap) if (li.isConnected) { const r = li.getBoundingClientRect(); const sr = li.closest(".cat"); if (r.height && sr) before.set(id, {sec: sr.dataset.cat, off: r.top - sr.getBoundingClientRect().top}); }
   }
   $("shopPill").hidden = !shopping.has(S.listId);
+  $("progress").hidden = $("pbar").hidden = !its.length;
   $("progress").textContent = `${cart.length}/${its.length}`;
   $("pbarFill").style.width = (its.length ? cart.length/its.length*100 : 0) + "%";
 
@@ -123,7 +124,7 @@ export function renderList(){
   const sgHTML = (S.readonly || list.done || sgHidden.has(S.listId)) ? "" : suggestHTML(S.listId, its, list);
   if (sgEl._html !== sgHTML) { sgEl.innerHTML = sgHTML; sgEl._html = sgHTML; }
 
-  $("listEmpty").innerHTML = its.length ? "" : `<div class="empty"><div class="basket">${ICON_BASKET}</div><strong>Lista vazia</strong>${S.readonly?"":"Digite um item na barra de baixo. A categoria é sugerida sozinha: “pão” vai para Padaria, “banana” para Fruteira."}</div>`;
+  $("listEmpty").innerHTML = its.length ? "" : `<p class="empty-line">${S.readonly ? "Lista vazia" : "Adicione o primeiro item"}</p>`;
 
   // seções por categoria
   const wrap = $("catsWrap");

@@ -22,7 +22,7 @@ function estado(on){
   const btn = $("addBtn"), inp = $("addInput");
   btn.classList.toggle("listening", on);
   btn.setAttribute("aria-label", on ? "Parar de ouvir" : "Ditar itens por voz");
-  inp.placeholder = on ? "Ouvindo… fale os itens" : "Adicionar itens (ex.: arroz, leite e pão)";
+  inp.placeholder = on ? "Ouvindo… fale os itens" : "Adicionar item";
 }
 
 /* fim da escuta: se ouviu algo, abre a confirmação */

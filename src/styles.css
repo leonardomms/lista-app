@@ -314,3 +314,27 @@ input.invite-text{height:40px;font-family:var(--mono);font-size:12px}
 .vz-x{width:36px;height:36px;border-radius:50%;background:var(--surface-2);color:var(--muted);font-size:20px;line-height:1;flex:none}
 .vz-act{display:flex;gap:8px;justify-content:flex-end}
 .vz-act .btn{height:44px}
+
+/* passada minimalista: lista vazia e menu do avatar */
+.empty-line{text-align:center;color:var(--muted);font-size:14px;padding:40px 24px}
+.catchip.auto::after{content:none}
+.envline{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;margin-bottom:6px}
+.env-pick{display:flex;align-items:center;gap:10px;min-width:0;flex:1;text-align:left;font-size:16px;height:44px}
+.env-pick.static{cursor:default}
+.env-pick .env-name{flex:0 1 auto}
+.env-chev{color:var(--muted);flex:none;transition:transform .2s}
+.env-pick[aria-expanded="true"] .env-chev{transform:rotate(180deg)}
+.env-dot.on{background:var(--accent)}
+.env-mem{font-family:var(--mono);font-size:12px;color:var(--muted);height:44px;padding-left:8px;white-space:nowrap}
+.env-sel{display:flex;flex-direction:column;margin:0 0 8px 19px;border-left:1px solid var(--line)}
+.env-opt{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:44px;padding:0 10px;text-align:left;font-size:15px;color:var(--muted)}
+.env-opt[aria-pressed="true"]{color:var(--fg)}
+.env-opt svg{color:var(--accent);flex:none}
+.menu.plain{gap:0;margin-top:6px}
+.menu.plain button{height:50px;border-radius:0;border-top:1px solid var(--line);padding:0 4px}
+.menu.plain button:first-child{border-top:0}
+.menu.plain button:hover{background:none;color:var(--accent-text)}
+.menu.plain .quiet{color:var(--muted);margin-top:10px;font-size:14px}
+.mem-title{display:flex;align-items:center;gap:8px}
+.mem-title .pen{color:var(--muted);display:grid;place-items:center;width:32px;height:32px;border-radius:50%;flex:none}
+.mem-title .pen svg{width:16px;height:16px}
