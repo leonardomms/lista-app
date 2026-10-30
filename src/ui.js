@@ -99,7 +99,6 @@ export function renderList(){
     for (const [cid, sec] of secMap) if (sec.isConnected) secBefore.set(cid, sec.getBoundingClientRect().top);
     for (const [id, li] of liMap) if (li.isConnected) { const r = li.getBoundingClientRect(); const sr = li.closest(".cat"); if (r.height && sr) before.set(id, {sec: sr.dataset.cat, off: r.top - sr.getBoundingClientRect().top}); }
   }
-  $("shopPill").hidden = !shopping.has(S.listId);
   $("progress").hidden = $("pbar").hidden = !its.length;
   $("progress").textContent = `${cart.length}/${its.length}`;
   $("pbarFill").style.width = (its.length ? cart.length/its.length*100 : 0) + "%";
