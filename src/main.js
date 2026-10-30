@@ -51,7 +51,8 @@ render();
   S.myId = uid; S.mode = "remote"; S.userApi = {profiles: D.fetchProfiles};
   try {
     const me = (await D.fetchProfiles([uid]))[uid] || {};
-    S.meName = me.name || ""; S.meColor = me.color || "";
+    const meta = session.user.user_metadata || {};   // nome vem do perfil; se vazio, do Google (user_metadata) ou do e-mail
+    S.meName = me.name || meta.full_name || meta.name || (session.user.email || "").split("@")[0]; S.meColor = me.color || "";
     S.profiles[uid] = {name: S.meName, color: S.meColor};
   } catch(e){}
   render();

@@ -14,7 +14,7 @@ export async function loginComGoogle(){
   if (!iniciado) { await SocialLogin.initialize({google: {webClientId: WEB_CLIENT_ID}}); iniciado = true; }
   const raw = hex(crypto.getRandomValues(new Uint8Array(16)));
   const hashed = hex(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(raw)));
-  const res = await SocialLogin.login({provider: "google", options: {scopes: ["email", "profile"], nonce: hashed}});
+  const res = await SocialLogin.login({provider: "google", options: {nonce: hashed}   /* sem scopes: com eles o plugin exigiria mexer na MainActivity; nome e e-mail já vêm no idToken */});
   const token = res && res.result && res.result.idToken;
   if (!token) throw new Error("O Google não devolveu o token de acesso.");
   const { error } = await sb.auth.signInWithIdToken({provider: "google", token, nonce: raw});
