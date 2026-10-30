@@ -40,26 +40,35 @@ render();
   /* sem configuração do Supabase: modo local; com Supabase e sem sessão: tela de login com Google */
   if (!D.enabled) { startLocal(); return; }
   let session = null;
-  let sessErr = null;
-  try { const r = await D.sb.auth.getSession(); session = r.data.session; sessErr = r.error; } catch(e){ sessErr = e; D.diag.err = (e && e.message) || String(e); }
-  /* sem rede o Supabase não consegue renovar um token vencido e devolve sem sessão: usa a conta guardada para abrir offline */
-  if (!session && (navigator.onLine === false || isNetErr(sessErr))) session = D.cachedSession();
+  /* "logado" = há sessão guardada no aparelho. Sem rede, nada de chamada: o app abre na hora com a conta guardada.
+     Com rede, o getSession valida/renova o token (com prazo); falha de rede nunca vira "deslogado". */
+  const guardada = D.cachedSession();
+  if (navigator.onLine === false) session = guardada;
+  else {
+    try { const r = await D.comPrazo(() => D.sb.auth.getSession(), 6000); session = r.data.session; if (!session && r.error && isNetErr(r.error)) session = guardada; }
+    catch(e){ D.diag.err = (e && e.message) || String(e); if (isNetErr(e)) session = guardada; }
+  }
   /* entrou ou saiu uma conta: recarrega para recomeçar do zero no modo certo */
   const uid = session ? session.user.id : null;
   D.diag.session = !!session;
-  D.sb.auth.onAuthStateChange((_ev, s) => { if ((s ? s.user.id : null) !== uid) location.reload(); });
+  /* só recarrega para entrar numa conta nova ou sair de verdade (SIGNED_OUT); evento sem sessão por falha de rede não conta */
+  D.sb.auth.onAuthStateChange((ev, s) => { if (ev === "SIGNED_OUT" ? !!uid : !!(s && s.user.id !== uid)) location.reload(); });
   /* só no desenvolvimento: permite testar com um usuário criado no painel do Supabase (signInWithPassword) */
   if (import.meta.env.DEV) window.__sb = D.sb;
   if (!session) { document.querySelector(".loading")?.remove(); showLogin(); return; }
 
   atualizarSelo();
   S.myId = uid; S.mode = "remote"; S.userApi = {profiles: D.fetchProfiles};
-  try {
-    const me = (await D.fetchProfiles([uid]))[uid] || {};
-    const meta = session.user.user_metadata || {};   // nome vem do perfil; se vazio, do Google (user_metadata) ou do e-mail
-    S.meName = me.name || meta.full_name || meta.name || (session.user.email || "").split("@")[0]; S.meColor = me.color || "";
-    S.profiles[uid] = {name: S.meName, color: S.meColor};
-  } catch(e){}
+  /* nome e cor: do cache local na hora; o servidor atualiza em seguida, se houver rede */
+  const meta = session.user.user_metadata || {};   // nome vem do perfil; se vazio, do Google (user_metadata) ou do e-mail
+  const euKey = "lista-eu-v1:" + uid;
+  let eu = {}; try { eu = JSON.parse(localStorage.getItem(euKey) || "{}") || {}; } catch(e){}
+  const aplicaEu = me => { S.meName = me.name || meta.full_name || meta.name || (session.user.email || "").split("@")[0]; S.meColor = me.color || ""; S.profiles[uid] = {name: S.meName, color: S.meColor}; };
+  aplicaEu(eu);
+  if (navigator.onLine !== false) {
+    try { const me = (await D.comPrazo(() => D.fetchProfiles([uid])))[uid] || {}; aplicaEu(me); try { localStorage.setItem(euKey, JSON.stringify(me)); } catch(e){} }
+    catch(e){}
+  }
   render();
   await startRemote();
 })();

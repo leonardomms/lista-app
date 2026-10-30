@@ -65,7 +65,7 @@ export function saveProfile(){
 /* ambientes da pessoa = as linhas dela em env_members */
 export async function loadEnvs(){
   const k = "lista-envs-v1:" + S.myId;
-  try { P.envs = await D.listEnvs(S.myId); try { localStorage.setItem(k, JSON.stringify(P.envs)); } catch(e){} redeOk(); }
+  try { P.envs = await D.comPrazo(() => D.listEnvs(S.myId)); try { localStorage.setItem(k, JSON.stringify(P.envs)); } catch(e){} redeOk(); }
   catch(e){
     if (!isNetErr(e)) throw e;
     redeCaiu();
@@ -155,7 +155,13 @@ let loadSeq = 0, resyncTimer = null;
 export async function loadEnvData(first){
   const env = S.env, seq = ++loadSeq;
   let d;
-  try { d = await D.loadEnv(env); }
+  /* abre na hora com o que está guardado; a rede só atualiza depois, sem piscar */
+  if (first && !S.loaded.lists && carregarCache(env)) {
+    reaplicarFila(env);
+    S.loaded = {lists:true, items:true}; S.membersLoaded = true; S.metaLoaded = true;
+    routeFromHash(); render(); updateAddChip();
+  }
+  try { d = await D.comPrazo(() => D.loadEnv(env), 10000); }
   catch(e){
     if (S.env !== env || seq !== loadSeq) return false;
     if (e && e.code === "sem_acesso") { kickedOut(env); return false; }
@@ -410,12 +416,20 @@ export function routeFromHash(){
 
 /* modo remoto: há sessão no Supabase. Carrega os ambientes da pessoa e abre o atual. */
 export async function startRemote(){
+  if (S.booting) return;
+  S.booting = true;
   S.mode = "remote";
   await loadProfile();
-  try { await loadEnvs(); } catch(e){ toast("Não consegui carregar seus ambientes. Confira a conexão."); P.envs = []; }
+  try { await loadEnvs(); }
+  catch(e){
+    P.envs = [];
+    /* sem rede e sem nada guardado (primeiro uso): fica em "Carregando", sem aviso de erro; reconectar() tenta de novo */
+    if (isNetErr(e)) { redeCaiu(); S.booting = false; return; }
+    toast("Não consegui carregar seus ambientes. Confira a conexão.");
+  }
   const inv = /^#e-([A-Za-z0-9]+)$/.exec(location.hash || "");
   if (inv) await joinEnv(inv[1]);
   if (!P.envs.length && !inv) { const id = await createEnv("Minha casa"); if (id) await loadEnvs().catch(()=>{}); }
   if (!S.env && P.envs.length) switchEnv(P.current && P.envs.some(e => e.id === P.current) ? P.current : P.envs[0].id);
-  S.bootDone = true; render();
+  S.bootDone = true; S.booting = false; render();
 }

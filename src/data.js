@@ -11,7 +11,13 @@ const SB_URL = origem(urlBruta);
 const KEY = limpa(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY);
 /* sem configuração (ex.: build sem .env), o app continua no modo local */
 export const enabled = !!(SB_URL && KEY);
-export const sb = enabled ? createClient(SB_URL, KEY) : null;
+/* a sessão fica guardada no aparelho e o token é renovado sozinho quando há rede */
+export const sb = enabled ? createClient(SB_URL, KEY, {auth: {persistSession: true, autoRefreshToken: true}}) : null;
+/* chamadas de rede com prazo: sem conexão falha na hora; com rede ruim, depois de `ms`. Sem isso, um token vencido offline
+   deixa toda chamada esperando a renovação do token (tentativas de até ~30 s) e o app parece travado ou deslogado. */
+export const comPrazo = (fn, ms = 7000) => navigator.onLine === false
+  ? Promise.reject(new Error("Failed to fetch"))
+  : Promise.race([Promise.resolve().then(fn), new Promise((_, no) => setTimeout(() => no(new Error("timeout")), ms))]);
 /* diagnóstico mostrado no menu: último erro do login e se há sessão */
 export const diag = {err: "", session: false};
 const codigos = s => [...new Set(s.match(/[^a-z0-9.:/-]/g) || [])].map(c => "U+" + c.codePointAt(0).toString(16).toUpperCase().padStart(4, "0")).join(",");
