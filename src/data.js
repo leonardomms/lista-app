@@ -96,6 +96,14 @@ export async function updateEnvPrefs(env, p){
   throw error;
 }
 
+/* sessão guardada pelo Supabase no aparelho (só para abrir sem rede; com rede o getSession cuida de tudo) */
+export function cachedSession(){
+  try {
+    for (const k of Object.keys(localStorage)) if (/^sb-.*-auth-token$/.test(k)) { const s = JSON.parse(localStorage.getItem(k)); if (s && s.user && s.user.id) return s; }
+  } catch(e){}
+  return null;
+}
+
 /* ---------------- ambientes e membros ---------------- */
 export async function listEnvs(uid){
   const rows = await ok(sb.from("env_members").select("joined_at, envs(id, name)").eq("user_id", uid).eq("removed", false).order("joined_at"));

@@ -1,6 +1,7 @@
 /* Ambientes, convites, membros e perfil. */
 import { S, shopping, expanded, $, esc } from "./estado.js";
-import { LS_KEY, loadLocal, enqueue, onWriteError, isPending } from "./dados.js";
+import { LS_KEY, loadLocal, enqueue, onWriteError, isPending, reaplicarFila, carregarCache, salvarCache, writeEnvName } from "./dados.js";
+import { isNetErr, redeCaiu, redeOk } from "./rede.js";
 import * as D from "./data.js";
 import { sair } from "./login.js";
 import { render, liMap, secMap, announce, openList, flushAll, updateAddChip, openSheet, closeSheet, watchChange, toast, setupRoom, renderPeers } from "./ui.js";
@@ -62,7 +63,17 @@ export function saveProfile(){
   try { localStorage.setItem(profileKey(), JSON.stringify(body)); } catch(e){}
 }
 /* ambientes da pessoa = as linhas dela em env_members */
-export async function loadEnvs(){ P.envs = await D.listEnvs(S.myId); }
+export async function loadEnvs(){
+  const k = "lista-envs-v1:" + S.myId;
+  try { P.envs = await D.listEnvs(S.myId); try { localStorage.setItem(k, JSON.stringify(P.envs)); } catch(e){} redeOk(); }
+  catch(e){
+    if (!isNetErr(e)) throw e;
+    redeCaiu();
+    let c = []; try { c = JSON.parse(localStorage.getItem(k) || "[]"); } catch(_){}
+    if (!c.length) throw e;
+    P.envs = c;      // sem rede: usa a última lista de ambientes conhecida
+  }
+}
 export function envName(id){
   if (!id) return "";
   if (id === S.env && S.envName) return S.envName;
@@ -72,7 +83,7 @@ export async function createEnv(name){
   name = (name||"").trim() || "Minha casa";
   if (S.mode === "remote") {
     try { const e = await D.createEnv(name); P.envs = P.envs.concat({id: e.id, name: e.name}); return e.id; }
-    catch(e){ onWriteError(e); return null; }
+    catch(e){ if (isNetErr(e)) { redeCaiu(); toast("Sem internet. Para criar um ambiente, conecte-se."); } else onWriteError(e); return null; }
   }
   const id = newCode();
   P.envs = P.envs.concat({id, name}); saveProfile();
@@ -109,7 +120,7 @@ export function renameEnv(name){
   name = (name||"").trim(); if (!name || !S.env) return;
   S.envName = name;
   P.envs = P.envs.map(e => e.id === S.env ? {...e, name} : e); saveProfile();
-  if (S.mode === "remote") { const env = S.env; enqueue("envs/" + env, () => D.updateEnv(env, {name})).catch(onWriteError); }
+  if (S.mode === "remote") writeEnvName(name);
   render();
 }
 export function leaveEnv(id){
@@ -148,18 +159,34 @@ export async function loadEnvData(first){
   catch(e){
     if (S.env !== env || seq !== loadSeq) return false;
     if (e && e.code === "sem_acesso") { kickedOut(env); return false; }
+    if (isNetErr(e)) {
+      redeCaiu();
+      /* sem rede: abre com o que ficou guardado no aparelho (e com o que ainda não foi enviado) */
+      if (!S.loaded.lists && carregarCache(env)) {
+        reaplicarFila(env);
+        const firstLists = true;
+        S.loaded = {lists:true, items:true}; S.membersLoaded = true; S.metaLoaded = true;
+        if (firstLists) routeFromHash();
+        render(); updateAddChip();
+        return true;
+      }
+      if (S.loaded.lists) return false;      // já há dados na tela: o selo "offline" basta
+    }
     if (first) { toast("Não consegui carregar as listas. Confira a conexão."); setTimeout(() => { if (S.env === env && !S.loaded.lists) loadEnvData(true); }, 4000); }
     return false;
   }
   if (S.env !== env || seq !== loadSeq) return false;
   S.lists = new Map(d.lists); S.items = new Map(d.items); S.history = new Map(d.history); S.members = new Map(d.members);
   applyEnvRow(d.env);
+  reaplicarFila(env);      // o que ainda não foi enviado continua na tela
+  redeOk();
   const firstLists = !S.loaded.lists;
   S.loaded = {lists:true, items:true}; S.membersLoaded = true; S.metaLoaded = true;
   fetchMissingProfiles([...S.members.keys()]);
   if (firstLists) routeFromHash();
   ensureMember();
   render(); updateAddChip();
+  salvarCache();
   return true;
 }
 /* volta a tela para o que o banco tem (depois de um erro de escrita ou de a conexão cair) */

@@ -7,6 +7,7 @@ import { SpeechRecognition } from "@capacitor-community/speech-recognition";
 import { $, esc } from "./estado.js";
 import { splitItems } from "./categorias.js";
 import { updateAddChip, addTexts, toast, openSheet, closeSheet } from "./ui.js";
+import { online } from "./rede.js";
 
 const nativo = Capacitor.isNativePlatform();
 const WebSR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -100,6 +101,7 @@ export async function bindVoz(){
   if (!ok) return;
   btn.onclick = () => {
     if (ouvindo) { if (encerrar) encerrar(); if (!nativo) return; terminar(); return; }
+    if (!online()) { toast("Voz precisa de internet"); return; }
     if (nativo) ouvirNativo(); else ouvirWeb();
   };
 }

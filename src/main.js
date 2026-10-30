@@ -17,6 +17,7 @@ import { bindVoz } from "./voz.js";
 import { startLocal, startRemote } from "./ambientes.js";
 import * as D from "./data.js";
 import { showLogin } from "./login.js";
+import { isNetErr, atualizarSelo } from "./rede.js";
 
 /* OTA (Capgo): confirma que este código abriu bem; sem isso o plugin volta para a versão anterior. Só no app nativo. */
 if (Capacitor.isNativePlatform()) { registrarEventosOta(); CapacitorUpdater.notifyAppReady().catch(() => {}); }
@@ -39,7 +40,10 @@ render();
   /* sem configuração do Supabase: modo local; com Supabase e sem sessão: tela de login com Google */
   if (!D.enabled) { startLocal(); return; }
   let session = null;
-  try { session = (await D.sb.auth.getSession()).data.session; } catch(e){ D.diag.err = (e && e.message) || String(e); }
+  let sessErr = null;
+  try { const r = await D.sb.auth.getSession(); session = r.data.session; sessErr = r.error; } catch(e){ sessErr = e; D.diag.err = (e && e.message) || String(e); }
+  /* sem rede o Supabase não consegue renovar um token vencido e devolve sem sessão: usa a conta guardada para abrir offline */
+  if (!session && (navigator.onLine === false || isNetErr(sessErr))) session = D.cachedSession();
   /* entrou ou saiu uma conta: recarrega para recomeçar do zero no modo certo */
   const uid = session ? session.user.id : null;
   D.diag.session = !!session;
@@ -48,6 +52,7 @@ render();
   if (import.meta.env.DEV) window.__sb = D.sb;
   if (!session) { document.querySelector(".loading")?.remove(); showLogin(); return; }
 
+  atualizarSelo();
   S.myId = uid; S.mode = "remote"; S.userApi = {profiles: D.fetchProfiles};
   try {
     const me = (await D.fetchProfiles([uid]))[uid] || {};

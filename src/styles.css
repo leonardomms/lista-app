@@ -336,3 +336,6 @@ input.invite-text{height:40px;font-family:var(--mono);font-size:12px}
 .mem-title{display:flex;align-items:center;gap:8px}
 .mem-title .pen{color:var(--muted);display:grid;place-items:center;width:32px;height:32px;border-radius:50%;flex:none}
 .mem-title .pen svg{width:16px;height:16px}
+
+/* selo offline (só enquanto não há rede) */
+.off-badge{font-family:var(--mono);font-size:11px;color:var(--accent-text);border:1px solid rgba(255,107,26,.4);border-radius:999px;padding:3px 8px;flex:none;pointer-events:none;white-space:nowrap}
