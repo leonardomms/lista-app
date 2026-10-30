@@ -363,7 +363,8 @@ export function openProfile(view){
       : `<span class="env-pick static">${dot}<span class="env-name">${esc(envName(cur))}</span></span>`}
     <button class="env-mem" data-act="members">${memTxt}</button></div>
     ${multi ? `<div class="env-sel" id="envSel" hidden>${P.envs.map(e => `<button class="env-opt" data-env="${esc(e.id)}" aria-pressed="${e.id === cur}"><span class="env-name">${esc(envName(e.id))}</span>${e.id === cur ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>' : ""}</button>`).join("")}</div>` : ""}` : "";
-  openSheet(`<div class="prof-head"><span class="av-lg" style="--c:${esc(S.meColor || "#ff6b1a")}">${esc(ini)}</span><div><b>${esc(S.meName || (S.mode === "local" ? "Modo local" : "Você"))}</b></div></div>
+  const foto = S.photoFailed ? "" : (S.mePhotoData || S.mePhoto || "");
+  openSheet(`<div class="prof-head"><span class="av-lg" style="--c:${esc(S.meColor || "#ff6b1a")}">${esc(ini)}${foto ? `<img class="av-img" src="${esc(foto)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : ""}</span><div><b>${esc(S.meName || (S.mode === "local" ? "Modo local" : "Você"))}</b>${S.meEmail ? `<small class="prof-mail">${esc(S.meEmail)}</small>` : ""}</div></div>
     ${envHead}
     <div class="menu plain">
       ${S.readonly || !cur ? "" : `<button data-act="invite">Convidar para “${esc(envName(cur))}”</button>`}

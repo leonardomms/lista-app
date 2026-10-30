@@ -65,8 +65,25 @@ render();
   let eu = {}; try { eu = JSON.parse(localStorage.getItem(euKey) || "{}") || {}; } catch(e){}
   const aplicaEu = me => { S.meName = me.name || meta.full_name || meta.name || (session.user.email || "").split("@")[0]; S.meColor = me.color || ""; S.profiles[uid] = {name: S.meName, color: S.meColor}; };
   aplicaEu(eu);
+  /* e-mail e foto vêm da sessão guardada (valem offline); a foto também fica em cache como data URL para não piscar as iniciais */
+  S.meEmail = session.user.email || eu.email || "";
+  S.mePhoto = meta.avatar_url || meta.picture || eu.photo || "";
+  const fotoKey = "lista-foto-v1:" + uid;
+  if (S.mePhoto) {
+    let f = null; try { f = JSON.parse(localStorage.getItem(fotoKey) || "null"); } catch(e){}
+    if (f && f.url === S.mePhoto && f.data) S.mePhotoData = f.data;
+    else if (navigator.onLine !== false) {
+      const url = S.mePhoto;
+      fetch(url, {referrerPolicy: "no-referrer"}).then(r => r.ok ? r.blob() : null).then(b => {
+        if (!b || b.size > 80000) return;
+        const fr = new FileReader();
+        fr.onload = () => { S.mePhotoData = fr.result; try { localStorage.setItem(fotoKey, JSON.stringify({url, data: fr.result})); } catch(e){} render(); };
+        fr.readAsDataURL(b);
+      }).catch(() => {});
+    }
+  }
   if (navigator.onLine !== false) {
-    try { const me = (await D.comPrazo(() => D.fetchProfiles([uid])))[uid] || {}; aplicaEu(me); try { localStorage.setItem(euKey, JSON.stringify(me)); } catch(e){} }
+    try { const me = (await D.comPrazo(() => D.fetchProfiles([uid])))[uid] || {}; aplicaEu(me); try { localStorage.setItem(euKey, JSON.stringify({...me, email: S.meEmail, photo: S.mePhoto})); } catch(e){} }
     catch(e){}
   }
   render();

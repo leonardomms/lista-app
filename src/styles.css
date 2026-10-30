@@ -339,3 +339,9 @@ input.invite-text{height:40px;font-family:var(--mono);font-size:12px}
 
 /* selo offline (só enquanto não há rede) */
 .off-badge{font-family:var(--mono);font-size:11px;color:var(--accent-text);border:1px solid rgba(255,107,26,.4);border-radius:999px;padding:3px 8px;flex:none;pointer-events:none;white-space:nowrap}
+
+/* foto do Google no avatar e e-mail no menu */
+.av-img{position:absolute;inset:0;width:100%;height:100%;border-radius:50%;object-fit:cover;background:var(--surface-2)}
+.av-lg{position:relative}
+.prof-head > div{min-width:0}
+.prof-head .prof-mail{display:block;color:var(--muted);font-family:var(--mono);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px}

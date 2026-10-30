@@ -13,6 +13,12 @@ export function render(){
   document.body.classList.toggle("ro", S.readonly);
   const ini = (S.meName||"").trim().split(/\s+/).filter(Boolean).map(w=>w[0]).join("").slice(0,2).toUpperCase();
   $("profileBtn").classList.toggle("has-dot", !!S.fbUnread);
+  /* foto do Google por cima das iniciais (que ficam por baixo: sem salto se a foto falhar ou demorar) */
+  { const btn = $("profileBtn"); let im = btn.querySelector("img.av-img"); const src = S.photoFailed ? "" : (S.mePhotoData || S.mePhoto || "");
+    if (src) {
+      if (!im) { im = new Image(); im.className = "av-img"; im.alt = ""; im.referrerPolicy = "no-referrer"; im.onerror = () => { S.photoFailed = true; im.remove(); }; btn.appendChild(im); }
+      if (im.getAttribute("src") !== src) im.src = src;
+    } else if (im) im.remove(); }
   $("avatarInitial").textContent = ini || (envName(S.env)||"·").trim().charAt(0).toUpperCase() || "·";
   $("homeView").hidden = S.view !== "home";
   $("listView").hidden = S.view !== "list";
