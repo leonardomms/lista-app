@@ -709,11 +709,23 @@ export function bindEvents(){
   const listView = $("listView");
   /* seleção do bloco: toque no cabeçalho, no texto de um item ou no vazio do bloco; fora de qualquer bloco desmarca.
      Não seleciona ao tocar no check, no ⋮, nas alças nem no nome/seta da categoria; barra de adicionar, folhas e avisos não mexem */
+  /* só vale toque confirmado: soltou em <500 ms, moveu <10 px, sem rolagem no gesto nem nos últimos 120 ms (inércia) */
+  let tap = null, lastScroll = 0;
+  window.addEventListener("scroll", () => { lastScroll = Date.now(); }, {capture: true, passive: true});
   document.addEventListener("pointerdown", e => {
-    if (S.view !== "list" || e.target.closest("#addbar, #sheet, #scrim, .toast")) return;
-    const sec = e.target.closest(".cat");
+    tap = (e.isPrimary !== false) ? {x: e.clientX, y: e.clientY, t: Date.now(), id: e.pointerId, scrolled: Date.now() - lastScroll < 120, target: e.target} : null;
+    if (tap) tap.sy = window.scrollY;
+  });
+  document.addEventListener("pointercancel", () => { tap = null; });
+  document.addEventListener("pointerup", e => {
+    const t = tap; tap = null;
+    if (!t || t.id !== e.pointerId || t.scrolled || S.dragging) return;
+    if (Date.now() - t.t >= 500 || Math.hypot(e.clientX - t.x, e.clientY - t.y) >= 10) return;
+    if (Date.now() - lastScroll < 120 || Math.abs(window.scrollY - t.sy) > 1) return;
+    if (S.view !== "list" || t.target.closest("#addbar, #sheet, #scrim, .toast")) return;
+    const sec = t.target.closest(".cat");
     if (!sec) { if (S.selectedCat) selectCat(null); return; }
-    if (S.readonly || e.target.closest(".check, .more, .grip, .cat-grip, .cat-name, .cat-toggle")) return;
+    if (S.readonly || t.target.closest(".check, .more, .grip, .cat-grip, .cat-name, .cat-toggle")) return;
     if (S.selectedCat !== sec.dataset.cat) selectCat(sec.dataset.cat);
   });
   /* o ⋮ aparece só com o item em edição: sem isto o campo perde o foco antes do clique e o botão some */
