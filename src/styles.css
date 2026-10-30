@@ -305,3 +305,12 @@ input.invite-text{height:40px;font-family:var(--mono);font-size:12px}
 .login .btn{height:46px;padding:0 24px;font-size:15px}
 .login .btn:disabled{opacity:.6}
 .login-err{margin:16px auto 0;max-width:300px;color:var(--danger);font-size:13px}
+
+/* confirmação do ditado por voz */
+.vz-list{display:flex;flex-direction:column;gap:8px;margin-bottom:16px;max-height:45vh;overflow:auto}
+.vz-row{display:flex;gap:8px;align-items:center}
+.vz-row input{flex:1;min-width:0;height:44px;border-radius:12px;border:1px solid var(--line-strong);background:var(--bg);padding:0 12px;outline:none}
+.vz-row input:focus{border-color:var(--accent)}
+.vz-x{width:36px;height:36px;border-radius:50%;background:var(--surface-2);color:var(--muted);font-size:20px;line-height:1;flex:none}
+.vz-act{display:flex;gap:8px;justify-content:flex-end}
+.vz-act .btn{height:44px}

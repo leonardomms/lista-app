@@ -34,3 +34,7 @@ App de lista de compras colaborativa em tempo real, migrando de um artefato do C
 ## Privacidade
 - Analytics e Clarity só depois do consentimento na primeira abertura.
 - Nunca envie o texto de itens, listas, ambientes ou nomes em eventos; no Clarity, mascare esses textos.
+
+## Progresso
+- Passo 8.5 (voz): feito, não commitado. `src/voz.js` usa `@capacitor-community/speech-recognition` (pt-BR, parciais ao vivo no campo, tocar de novo para parar); no navegador, Web Speech API; sem reconhecimento, o botão some. O texto final passa por `splitItems` e abre uma folha de confirmação (editar/remover cada item); "Adicionar" usa `addTexts` (`src/ui.js`), o mesmo caminho da barra (categoria automática e aprendizado do chip manual). `RECORD_AUDIO` vem do manifesto do plugin. Falta testar no aparelho e declarar o microfone na Segurança dos dados do Google Play.
+- Ícone novo (adaptive icon gerado com `@capacitor/assets` a partir de `assets/`, fundo laranja #ff6b1a) e nome do app no celular "Lista" (`strings.xml` e `appName`); o pacote `br.com.listadafeira` e os textos dentro do app não mudaram.

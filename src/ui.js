@@ -453,19 +453,20 @@ export function updateAddChip(){
   chip.querySelector("span").textContent = c.name;
   chip.classList.toggle("auto", !S.addCatManual);
 }
+/* adiciona vários textos de uma vez (barra de adicionar e voz): categoria automática ou a escolhida no chip, que ensina o app */
+export function addTexts(parts){
+  parts = parts.map(t => t.trim()).filter(Boolean); if (!parts.length) return;
+  if (S.addCatManual && S.addCat) parts.forEach(t => learn(t, S.addCat));
+  const ids = parts.map(t => addItem(t, S.addCatManual ? S.addCat : null)).filter(Boolean);
+  if (ids.length > 1) toast(`${ids.length} itens adicionados`, () => ids.forEach(id => deleteItem(id, true)));
+  S.addCatManual = false; updateAddChip();
+}
 export function submitAdd(){
   const inp = $("addInput");
   const v = inp.value.trim(); if (!v) return;
   const parts = splitItems(v);
-  if (parts.length > 1) {
-    if (S.addCatManual && S.addCat) parts.forEach(t => learn(t, S.addCat));
-    const ids = parts.map(t => addItem(t, S.addCatManual ? S.addCat : null)).filter(Boolean);
-    toast(`${ids.length} itens adicionados`, () => ids.forEach(id => deleteItem(id, true)));
-  } else {
-    if (S.addCatManual && S.addCat) learn(v, S.addCat);
-    addItem(v, S.addCatManual ? S.addCat : null);
-  }
-  inp.value = ""; S.addCatManual = false; updateAddChip();
+  inp.value = "";
+  addTexts(parts.length > 1 ? parts : [v]);
   inp.focus();
 }
 
