@@ -299,3 +299,9 @@ input.invite-text{height:40px;font-family:var(--mono);font-size:12px}
 .loading{padding:80px 0;text-align:center;color:var(--muted)}
 .app-version{margin:14px 0 0;text-align:center;font-family:var(--mono);font-size:11px;color:var(--faint)}
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+
+/* tela de login */
+.login{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background-color:var(--bg);background-image:radial-gradient(var(--dot) 1px, transparent 1.2px);background-size:18px 18px;padding:var(--safe-top) 16px var(--safe-bottom)}
+.login .btn{height:46px;padding:0 24px;font-size:15px}
+.login .btn:disabled{opacity:.6}
+.login-err{margin:16px auto 0;max-width:300px;color:var(--danger);font-size:13px}

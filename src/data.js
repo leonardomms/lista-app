@@ -96,13 +96,6 @@ export async function updateEnvPrefs(env, p){
   throw error;
 }
 
-/* TEMPORÁRIO (até o login com Google, Passo 4): com VITE_DEV_ANON_LOGIN=true e sem sessão, entra como anônimo.
-   Para remover: apague esta função, a linha que a chama no main.js e a variável. */
-export async function devAnonLogin(){
-  if (import.meta.env.VITE_DEV_ANON_LOGIN !== "true") { diag.err = "VITE_DEV_ANON_LOGIN != true"; return null; }
-  try { const { data, error } = await sb.auth.signInAnonymously(); if (error) diag.err = error.message; return error ? null : data.session; } catch(e){ diag.err = (e && e.message) || String(e); return null; }
-}
-
 /* ---------------- ambientes e membros ---------------- */
 export async function listEnvs(uid){
   const rows = await ok(sb.from("env_members").select("joined_at, envs(id, name)").eq("user_id", uid).eq("removed", false).order("joined_at"));

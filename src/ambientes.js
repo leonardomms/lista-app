@@ -2,6 +2,7 @@
 import { S, shopping, expanded, $, esc } from "./estado.js";
 import { LS_KEY, loadLocal, enqueue, onWriteError, isPending } from "./dados.js";
 import * as D from "./data.js";
+import { sair } from "./login.js";
 import { render, liMap, secMap, announce, openList, flushAll, updateAddChip, openSheet, closeSheet, watchChange, toast, setupRoom, renderPeers } from "./ui.js";
 import { sgHidden, canFeedback, openFeedback, openInbox } from "./sugestoes.js";
 import { versaoTexto, carregarVersao, otaLinha } from "./versao.js";
@@ -324,6 +325,7 @@ export function openProfile(view){
       <button data-act="code">${ICON_KEY}Entrar com link de convite</button>
       ${canFeedback() ? `<button data-act="feedback">${ICON_CHAT}Enviar sugestão</button>` : ""}
       ${S.isOwner && S.mode === "remote" ? `<button data-act="inbox">${ICON_INBOX}Sugestões recebidas${S.fbUnread ? ` <span class="chip">${S.fbUnread} nova${S.fbUnread > 1 ? "s" : ""}</span>` : ""}</button>` : ""}
+      ${S.mode === "remote" ? `<button data-act="logout">${ICON_EXIT}Sair da conta</button>` : ""}
       ${P.envs.length > 1 ? `<button class="red" data-act="leave">${ICON_EXIT}Sair de “${esc(envName(cur))}”</button>` : ""}
     </div><div id="leaveBox"></div><p class="app-version" id="appVersion">${esc(versaoTexto)}</p><p class="app-version" style="margin-top:4px">${esc(otaLinha())}</p><p class="app-version" style="margin-top:4px">${esc(D.diagLinha())}</p>`, body => {
     carregarVersao().then(t => { const el = $("appVersion"); if (el) el.textContent = t; });
@@ -337,6 +339,7 @@ export function openProfile(view){
       else if (a === "feedback") openFeedback("perfil");
       else if (a === "inbox") openInbox();
       else if (a === "rename" || a === "new" || a === "code") openProfile(a);
+      else if (a === "logout") { closeSheet(); sair(); }
       else if (a === "leave") $("leaveBox").innerHTML = `<p class="sub" style="margin-top:12px">Sair de “${esc(envName(S.env))}”? As listas continuam lá para quem participa. Para voltar, você vai precisar do código.</p><div class="confirm"><button class="btn" data-act="cancel">Cancelar</button><button class="btn danger" data-act="leave-yes">Sair</button></div>`;
       else if (a === "cancel") $("leaveBox").innerHTML = "";
       else if (a === "leave-yes") { const nm = envName(S.env); leaveEnv(S.env); closeSheet(); toast(`Você saiu de “${nm}”`); }

@@ -16,6 +16,7 @@ import { registrarEventosOta } from "./versao.js";
 import { bindVoz } from "./voz.js";
 import { startLocal, startRemote } from "./ambientes.js";
 import * as D from "./data.js";
+import { showLogin } from "./login.js";
 
 /* OTA (Capgo): confirma que este código abriu bem; sem isso o plugin volta para a versão anterior. Só no app nativo. */
 if (Capacitor.isNativePlatform()) { registrarEventosOta(); CapacitorUpdater.notifyAppReady().catch(() => {}); }
@@ -35,18 +36,17 @@ if (Capacitor.isNativePlatform()) {
 /* ---------------- boot ---------------- */
 render();
 (async function boot(){
-  /* sem configuração do Supabase ou sem sessão (o login chega no Passo 4): modo local, como antes */
+  /* sem configuração do Supabase: modo local; com Supabase e sem sessão: tela de login com Google */
   if (!D.enabled) { startLocal(); return; }
   let session = null;
   try { session = (await D.sb.auth.getSession()).data.session; } catch(e){ D.diag.err = (e && e.message) || String(e); }
-  if (!session) session = await D.devAnonLogin();   // TEMPORÁRIO: sai com o login do Passo 4
   /* entrou ou saiu uma conta: recarrega para recomeçar do zero no modo certo */
   const uid = session ? session.user.id : null;
   D.diag.session = !!session;
   D.sb.auth.onAuthStateChange((_ev, s) => { if ((s ? s.user.id : null) !== uid) location.reload(); });
   /* só no desenvolvimento: permite testar com um usuário criado no painel do Supabase (signInWithPassword) */
   if (import.meta.env.DEV) window.__sb = D.sb;
-  if (!session) { startLocal(); return; }
+  if (!session) { document.querySelector(".loading")?.remove(); showLogin(); return; }
 
   S.myId = uid; S.mode = "remote"; S.userApi = {profiles: D.fetchProfiles};
   try {
