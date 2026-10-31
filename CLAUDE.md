@@ -9,7 +9,7 @@ App de lista de compras colaborativa em tempo real, migrando de um artefato do C
 ## Regras do projeto
 - A interface é em português do Brasil, com o tom curto e direto que já existe.
 - Visual escuro: fundo #0a0a0b com grade de pontinhos, acento laranja #ff6b1a, fontes Geist e Geist Mono. Sem gradiente laranja no fundo.
-- Não use IA nas funções "inteligentes": a categorização é um dicionário mais uma tabela `learned` por ambiente, e as sugestões são o ritmo de compra calculado a partir de `trips`.
+- Não use IA nas funções "inteligentes": a categorização é um dicionário mais uma tabela `learned` por ambiente, e as sugestões são o ritmo de compra em dias calculado a partir de `trips` (mínimo 3 compras do item, ≥3 dias entre elas, sugere a partir de 85% do intervalo).
 - Toda escrita é otimista (atualiza a tela na hora) e é confirmada pelo Realtime.
 - Permissões ficam no banco (RLS e funções `security definer`), nunca só na interface.
 - Segredos só em `.env` (nunca commitar). No app vai apenas a anon key.

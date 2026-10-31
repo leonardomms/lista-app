@@ -32,32 +32,35 @@ export function pastTrips(currentListId){
   }
   return trips.sort((a, b) => a.at - b.at);
 }
+/* ritmo em DIAS: um item só é sugerido depois de 3 compras (com pelo menos 3 dias entre elas) e perto do intervalo típico dele */
+const DIA = 86400000, MIN_COMPRAS = 3, MIN_GAP = 3, MAX_IDADE = 365, ANTECEDENCIA = 0.85;
 export function computeSuggestions(listId, its, list){
-  const trips = pastTrips(listId);
-  const N = trips.length;
-  if (N < 2) return [];
+  const now = Date.now();
+  const trips = pastTrips(listId).filter(t => t.at && now - t.at <= MAX_IDADE * DIA);
+  if (trips.length < MIN_COMPRAS) return [];
   const stats = new Map();
-  trips.forEach((t, idx) => {
+  for (const t of trips) {
     const seen = new Set();
     for (const it of t.items) {
       if (!it || !it.k || seen.has(it.k)) continue; seen.add(it.k);
-      let s = stats.get(it.k); if (!s) { s = {idx: [], text: it.text, cat: it.cat}; stats.set(it.k, s); }
-      s.idx.push(idx); s.text = it.text; s.cat = it.cat;
+      let st = stats.get(it.k); if (!st) { st = {at: [], text: it.text, cat: it.cat}; stats.set(it.k, st); }
+      /* compras com menos de 3 dias de distância contam como uma só */
+      if (!st.at.length || t.at - st.at[st.at.length - 1] >= MIN_GAP * DIA) st.at.push(t.at);
+      st.text = it.text; st.cat = it.cat;
     }
-  });
+  }
   const inList = new Set(its.map(i => keyOf(i.text)));
   const dismissed = new Set((list && list.dismissed) || []);
   const out = [];
-  for (const [k, s] of stats) {
-    if (s.idx.length < 2 || inList.has(k) || dismissed.has(k)) continue;
-    const gaps = []; for (let i = 1; i < s.idx.length; i++) gaps.push(s.idx[i] - s.idx[i-1]);
+  for (const [k, st] of stats) {
+    if (st.at.length < MIN_COMPRAS || inList.has(k) || dismissed.has(k)) continue;
+    const gaps = []; for (let i = 1; i < st.at.length; i++) gaps.push((st.at[i] - st.at[i-1]) / DIA);
     gaps.sort((a, b) => a - b);
-    const interval = Math.max(1, Math.round(gaps[Math.floor(gaps.length / 2)]));
-    const since = N - s.idx[s.idx.length - 1];
-    if (since < interval) continue;
-    let why = interval === 1 ? "em toda compra" : interval === 2 ? "compra sim, compra não" : `a cada ${interval} compras`;
-    if (since > interval) why = `costuma ser ${why.replace("em toda compra", "toda compra")} · atrasado`;
-    out.push({key: k, text: s.text, cat: allCats().some(c => c.id === s.cat) ? s.cat : (guessCat(s.text) || "outros"), why, score: since / interval + s.idx.length / N});
+    const interval = Math.max(MIN_GAP, Math.round(gaps[Math.floor(gaps.length / 2)]));
+    const since = Math.round((now - st.at[st.at.length - 1]) / DIA);
+    if (since < interval * ANTECEDENCIA) continue;
+    const why = `costuma comprar a cada ~${interval} dias · faz ${since} ${since === 1 ? "dia" : "dias"}${since > interval * 1.15 ? " · atrasado" : ""}`;
+    out.push({key: k, text: st.text, cat: allCats().some(c => c.id === st.cat) ? st.cat : (guessCat(st.text) || "outros"), why, score: since / interval + Math.min(st.at.length, 10) / 10});
   }
   return out.sort((a, b) => b.score - a.score).slice(0, 14);
 }
