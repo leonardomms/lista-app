@@ -355,5 +355,5 @@ input.invite-text{height:40px;font-family:var(--mono);font-size:12px}
 .sk i::after{content:"";position:absolute;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.07),transparent);animation:sk-shimmer 1.4s infinite}
 @keyframes sk-shimmer{to{transform:translateX(100%)}}
 @media (prefers-reduced-motion:reduce){.sk i::after{animation:none}}
-.off-note{position:fixed;top:calc(env(safe-area-inset-top,0px) + 6px);left:50%;transform:translateX(-50%);z-index:60;max-width:92vw;font-size:12px;color:var(--accent-text);background:var(--surface-solid);border:1px solid rgba(255,107,26,.4);border-radius:999px;padding:5px 12px;pointer-events:none;white-space:nowrap}
+.off-note{display:block;text-align:center;font-size:12px;line-height:1.3;color:var(--accent-text);background:rgba(255,107,26,.1);border:1px solid rgba(255,107,26,.3);border-radius:10px;padding:6px 12px;margin:0 0 10px}
 .off-note[hidden]{display:none}
