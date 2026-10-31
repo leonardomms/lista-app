@@ -586,8 +586,29 @@ export function removeBlock(cid){
 function openBlockMenu(cid){
   const n = itemsOf(S.listId).filter(i => (i.cat || "outros") === cid).length;
   openSheet(`<h4>${esc(catById(cid).name)}</h4><p class="sub">${n === 1 ? "1 item" : n + " itens"} neste bloco</p>
-    <div class="menu"><button class="red" data-act="del-block">${ICON_TRASH}Remover bloco e ${n === 1 ? "1 item" : n + " itens"}</button></div>`, body => {
-    body.onclick = e => { if (e.target.closest('[data-act="del-block"]')) { closeSheet(); removeBlock(cid); } };
+    <div class="menu"><button data-act="move-block">Mover para outra lista</button><button class="red" data-act="del-block">${ICON_TRASH}Remover bloco e ${n === 1 ? "1 item" : n + " itens"}</button></div>`, body => {
+    body.onclick = e => {
+      if (e.target.closest('[data-act="move-block"]')) { openMoveBlock(cid); return; }
+      if (e.target.closest('[data-act="del-block"]')) { closeSheet(); removeBlock(cid); }
+    };
+  });
+}
+/* escolhe a lista de destino e leva todos os itens do bloco (mesma categoria) para ela */
+function openMoveBlock(cid){
+  const from = S.listId, n = itemsOf(from).filter(i => (i.cat || "outros") === cid).length;
+  const others = [...S.lists].filter(([id]) => id !== from).map(([id, l]) => ({id, ...l})).sort((a, b) => (a.done - b.done) || (b.createdAt || 0) - (a.createdAt || 0));
+  openSheet(`<h4>Mover “${esc(catById(cid).name)}”</h4><p class="sub">${n === 1 ? "1 item vai" : n + " itens vão"} para a lista que você escolher.</p>
+    <div class="menu">${others.map(l => `<button data-to="${esc(l.id)}">${esc(l.title || "Lista sem nome")}${l.done ? " · concluída" : ""}</button>`).join("") || '<p class="sub">Não há outra lista neste ambiente.</p>'}<button class="quiet" data-act="back">Voltar</button></div>`, body => {
+    body.onclick = e => {
+      if (e.target.closest('[data-act="back"]')) { openBlockMenu(cid); return; }
+      const b = e.target.closest("[data-to]"); if (!b) return;
+      const to = b.dataset.to, its = itemsOf(from).filter(i => (i.cat || "outros") === cid).sort((a, c) => (a.order || 0) - (c.order || 0));
+      const prev = its.map(i => ({id: i.id, listId: i.listId, order: i.order}));
+      its.forEach(i => write("items", i.id, {listId: to, order: nextOrderInCat(to, i.cat)}, "patch"));
+      if (S.lists.get(to) && S.lists.get(to).done) write("lists", to, {done: false}, "patch");
+      closeSheet();
+      toast(`${its.length === 1 ? "1 item movido" : its.length + " itens movidos"} para “${(S.lists.get(to) || {}).title || "Lista sem nome"}”`, () => prev.forEach(p => write("items", p.id, {listId: p.listId, order: p.order}, "patch")));
+    };
   });
 }
 /* toque longo (550 ms) em `sel` (fora de `skip`); cancela se o dedo andar; o toque que o termina não vira clique */
@@ -737,6 +758,8 @@ export function bindEvents(){
   /* o ⋮ aparece só com o item em edição: sem isto o campo perde o foco antes do clique e o botão some */
   listView.addEventListener("mousedown", e => { if (e.target.closest(".more")) e.preventDefault(); });
   bindLongPress(listView, ".cat-head", ".cat-grip, .cat-toggle", h => openBlockMenu(h.closest(".cat").dataset.cat));
+  /* segurar um item abre a escolha de categoria (a mesma folha do ⋮) */
+  bindLongPress(listView, ".item", ".check, .grip, .more", li => { try { document.activeElement.blur(); } catch(e){} openItemSheet(li.dataset.id); });
   bindLongPress($("homeBody"), ".lcard", null, c => openListCardMenu(c.dataset.open));
   listView.addEventListener("click", e => {
     const ck = e.target.closest(".check"); if (ck) { toggleItem(ck.closest(".item").dataset.id); return; }
