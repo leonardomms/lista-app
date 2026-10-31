@@ -3,6 +3,7 @@
 import { SocialLogin } from "@capgo/capacitor-social-login";
 import { sb, diag } from "./data.js";
 import { $ } from "./estado.js";
+import { limpar } from "./cache.js";
 import { ICON_BASKET } from "./icones.js";
 
 const WEB_CLIENT_ID = (import.meta.env.VITE_GOOGLE_WEB_CLIENT_ID || "").trim();
@@ -23,6 +24,7 @@ export async function loginComGoogle(){
 
 export async function sair(){
   try { await SocialLogin.logout({provider: "google"}); } catch(e){}
+  limpar();
   await sb.auth.signOut();
 }
 

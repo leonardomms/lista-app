@@ -12,7 +12,7 @@ export function isNetErr(e){
 }
 
 export function atualizarSelo(){
-  const el = document.getElementById("offBadge");
+  const el = document.getElementById("offNote");
   if (el) el.hidden = online();
 }
 export function redeCaiu(){ if (!rede.down) { rede.down = true; atualizarSelo(); } }

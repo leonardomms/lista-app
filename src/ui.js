@@ -27,15 +27,20 @@ export function render(){
   if (S.view === "home") renderHome(); else renderList();
 }
 
+/* esqueleto: só aparece quando não há nada guardado; mesmas medidas dos cards reais */
+const SK_HOME = `<div class="lists sk" aria-busy="true" aria-label="Carregando">${'<div class="lcard sk-card"><i></i><i></i></div>'.repeat(3)}</div>`;
+const SK_LIST = `<div class="sk" aria-busy="true" aria-label="Carregando">${'<div class="cat sk-cat"><i class="sk-h"></i><i></i><i></i><i></i></div>'.repeat(2)}</div>`;
+/* só mexe no DOM se o HTML mudou: dados novos iguais aos guardados não piscam nem mexem na rolagem */
+function setHTML(el, html){ if (el._html !== html) { el.innerHTML = html; el._html = html; } }
 export function renderHome(){
   const body = $("homeBody");
   if (S.mode === "remote" && S.bootDone && !S.env) {
     $("homeSub").textContent = "Nenhum ambiente ainda";
-    body.innerHTML = `<div class="empty"><div class="basket">${ICON_BASKET}</div><strong>Entre num ambiente</strong>Peça o link de convite para quem criou a lista.<div style="margin-top:16px"><button class="btn primary" data-act="join-code">Colar link de convite</button></div></div>`;
+    setHTML(body, `<div class="empty"><div class="basket">${ICON_BASKET}</div><strong>Entre num ambiente</strong>Peça o link de convite para quem criou a lista.<div style="margin-top:16px"><button class="btn primary" data-act="join-code">Colar link de convite</button></div></div>`);
     return;
   }
   if (S.mode === "loading" || (S.mode === "remote" && !(S.loaded.lists && S.loaded.items))) {
-    body.innerHTML = `<div class="loading">${S.migrating ? "Organizando suas listas no ambiente “Minha casa”…" : "Carregando suas listas…"}</div>`; return;
+    setHTML(body, SK_HOME); return;
   }
   const q = norm(S.search);
   const all = [...S.lists].map(([id,l]) => ({id, ...l}))
@@ -53,7 +58,7 @@ export function renderHome(){
     openCount ? (openCount === 1 ? "1 lista aberta" : openCount + " listas abertas") : "nenhuma lista aberta");
 
   if (!all.length) {
-    body.innerHTML = `<div class="empty"><div class="basket">${ICON_BASKET}</div><strong>Nenhuma lista ainda</strong>${S.readonly ? "Quando alguém criar uma lista, ela aparece aqui." : "Toque no + para criar a primeira lista de compras."}<div style="margin-top:18px"><button class="btn" data-act="join-code">Recebeu um convite? Cole o link</button></div></div>`;
+    setHTML(body, `<div class="empty"><div class="basket">${ICON_BASKET}</div><strong>Nenhuma lista ainda</strong>${S.readonly ? "Quando alguém criar uma lista, ela aparece aqui." : "Toque no + para criar a primeira lista de compras."}<div style="margin-top:18px"><button class="btn" data-act="join-code">Recebeu um convite? Cole o link</button></div></div>`);
     return;
   }
   let html = "";
@@ -65,7 +70,7 @@ export function renderHome(){
       Concluídas · ${done.length}</button>`;
     if (S.showDone) html += `<div class="lists">${done.map(cardHTML).join("")}</div>`;
   }
-  body.innerHTML = html;
+  setHTML(body, html);
 }
 export function cardHTML(l){
   const its = itemsOf(l.id);
@@ -89,7 +94,7 @@ export let catsSortable = null;
 export function renderList(){
   const list = S.lists.get(S.listId);
   if (!list) {
-    if (S.mode === "remote" && !S.loaded.lists) return;
+    if (S.mode === "remote" && !S.loaded.lists) { setHTML($("catsWrap"), SK_LIST); return; }
     S.view = "home"; S.listId = null; render(); toast("Essa lista foi excluída."); return;
   }
   const ti = $("titleInput");
@@ -133,6 +138,7 @@ export function renderList(){
 
   // seções por categoria
   const wrap = $("catsWrap");
+  if (wrap._html) { wrap.innerHTML = ""; wrap._html = null; }   // tira o esqueleto
   const order = sortedCatsFor(list);
   const byCat = new Map();
   for (const it of its) { const c = order.includes(it.cat) ? it.cat : "outros"; if (!byCat.has(c)) byCat.set(c, []); byCat.get(c).push(it); }

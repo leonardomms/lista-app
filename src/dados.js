@@ -6,6 +6,7 @@ import { lsKey, resyncEnv } from "./ambientes.js";
 import * as D from "./data.js";
 import { rede, isNetErr, redeCaiu, redeOk, atualizarSelo } from "./rede.js";
 import { startRemote } from "./ambientes.js";
+import * as C from "./cache.js";
 
 export function itemsOf(listId){ const out=[]; for (const [id,it] of S.items) if (it.listId === listId) out.push({id, ...it}); return out; }
 
@@ -147,23 +148,20 @@ export function onWriteError(e){
 }
 
 /* ---------------- cache local do ambiente (abre sem rede) ---------------- */
-const CACHE_KEY = env => "lista-cache-v1:" + env;
 export function salvarCache(){
-  if (S.mode !== "remote" || !S.env || !S.loaded.lists) return;
-  try {
-    localStorage.setItem(CACHE_KEY(S.env), JSON.stringify({lists: [...S.lists], items: [...S.items], history: [...S.history], members: [...(S.members || [])], profiles: S.profiles,
-      customCats: S.customCats, catOverrides: S.catOverrides, learned: S.learned, envName: S.envName, envBy: S.envBy, inviteToken: S.inviteToken, envCreatedAt: S.envCreatedAt}));
-  } catch(e){}
+  if (S.mode !== "remote" || !S.env || !S.myId || !S.loaded.lists) return;
+  C.gravar(S.myId, S.env, {lists: [...S.lists], items: [...S.items], history: [...S.history], members: [...(S.members || [])], profiles: S.profiles,
+    customCats: S.customCats, catOverrides: S.catOverrides, learned: S.learned, envName: S.envName, envBy: S.envBy, inviteToken: S.inviteToken, envCreatedAt: S.envCreatedAt});
 }
 let cacheT = null;
-export function cacheSoon(){ clearTimeout(cacheT); cacheT = setTimeout(salvarCache, 400); }
+export function cacheSoon(){ clearTimeout(cacheT); cacheT = setTimeout(salvarCache, 300); }
 export function carregarCache(env){
+  const c = C.ler(S.myId, env); if (!c) return false;
   try {
-    const raw = localStorage.getItem(CACHE_KEY(env)); if (!raw) return false;
-    const c = JSON.parse(raw);
     S.lists = new Map(c.lists || []); S.items = new Map(c.items || []); S.history = new Map(c.history || []); S.members = new Map(c.members || []); Object.assign(S.profiles, c.profiles || {});
     S.customCats = c.customCats || []; S.catOverrides = c.catOverrides || {}; S.learned = c.learned || {};
     S.envName = c.envName || S.envName; S.envBy = c.envBy || null; S.inviteToken = c.inviteToken || ""; S.envCreatedAt = c.envCreatedAt || 0;
+    C.info.fonte = "cache";
     return true;
   } catch(e){ return false; }
 }
@@ -172,7 +170,7 @@ export function carregarCache(env){
 let foiOffline = false;
 export function reconectar(){
   if (S.mode !== "remote") return;
-  if (!(foiOffline || rede.down || obLoad().length)) return;
+  if (!(foiOffline || rede.down || C.info.fonte === "cache" || obLoad().length)) return;
   foiOffline = false; rede.down = false; atualizarSelo();
   if (!S.bootDone) { startRemote().then(() => flushFila()); return; }      // abriu sem rede e sem cache: termina a abertura agora
   flushFila().then(() => resyncEnv());

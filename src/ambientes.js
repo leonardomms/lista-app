@@ -1,6 +1,7 @@
 /* Ambientes, convites, membros e perfil. */
 import { S, shopping, expanded, $, esc } from "./estado.js";
-import { LS_KEY, loadLocal, enqueue, onWriteError, isPending, reaplicarFila, carregarCache, salvarCache, writeEnvName } from "./dados.js";
+import { LS_KEY, loadLocal, enqueue, onWriteError, isPending, reaplicarFila, carregarCache, salvarCache, cacheSoon, writeEnvName } from "./dados.js";
+import * as C from "./cache.js";
 import { isNetErr, redeCaiu, redeOk } from "./rede.js";
 import * as D from "./data.js";
 import { sair } from "./login.js";
@@ -64,7 +65,7 @@ export function saveProfile(){
 }
 /* ambientes da pessoa = as linhas dela em env_members */
 export async function loadEnvs(){
-  const k = "lista-envs-v1:" + S.myId;
+  const k = C.ENVS_KEY(S.myId);
   try { P.envs = await D.comPrazo(() => D.listEnvs(S.myId)); try { localStorage.setItem(k, JSON.stringify(P.envs)); } catch(e){} redeOk(); }
   catch(e){
     if (!isNetErr(e)) throw e;
@@ -74,6 +75,7 @@ export async function loadEnvs(){
     P.envs = c;      // sem rede: usa a última lista de ambientes conhecida
   }
 }
+export function envsGuardados(){ try { const c = JSON.parse(localStorage.getItem(C.ENVS_KEY(S.myId)) || "[]"); return Array.isArray(c) ? c : []; } catch(e){ return []; } }
 export function envName(id){
   if (!id) return "";
   if (id === S.env && S.envName) return S.envName;
@@ -185,7 +187,7 @@ export async function loadEnvData(first){
   S.lists = new Map(d.lists); S.items = new Map(d.items); S.history = new Map(d.history); S.members = new Map(d.members);
   applyEnvRow(d.env);
   reaplicarFila(env);      // o que ainda não foi enviado continua na tela
-  redeOk();
+  redeOk(); C.info.fonte = "rede";
   const firstLists = !S.loaded.lists;
   S.loaded = {lists:true, items:true}; S.membersLoaded = true; S.metaLoaded = true;
   fetchMissingProfiles([...S.members.keys()]);
@@ -222,26 +224,26 @@ const COLL = {items: "items", lists: "lists", trips: "history"};
 /* um evento do Realtime; ecos do que a própria tela já aplicou são ignorados */
 export function applyChange(table, p){
   const row = p.new && Object.keys(p.new).length ? p.new : p.old;
-  if (table === "envs") { if (p.eventType === "DELETE") { kickedOut(S.env); return; } applyEnvRow(p.new); render(); updateAddChip(); return; }
+  if (table === "envs") { if (p.eventType === "DELETE") { kickedOut(S.env); return; } applyEnvRow(p.new); render(); updateAddChip(); cacheSoon(); return; }
   if (table === "env_members") {
     const uid = row && row.user_id; if (!uid) return;
     if (p.eventType === "DELETE") S.members.delete(uid); else S.members.set(uid, D.fromMember(p.new));
     fetchMissingProfiles([uid]); ensureMember();
     if (S._drawMembers && $("mList")) S._drawMembers();
-    return;
+    cacheSoon(); return;
   }
   const coll = COLL[table], id = row && row.id; if (!coll || !id) return;
   const map = coll === "lists" ? S.lists : coll === "history" ? S.history : S.items;
   if (p.eventType === "DELETE") {
     if (!map.has(id) || isPending(coll, id)) return;
     map.delete(id); if (coll === "items") watchChange({type: "removed", doc: {id, data: () => ({})}});
-    render(); return;
+    render(); cacheSoon(); return;
   }
   if (isPending(coll, id)) return;
   const next = D.convert(coll, p.new), cur = map.get(id);
   if (cur && sameData(cur, next)) return;
   if (coll === "items" && S.loaded.items) { try { watchChange({type: cur ? "modified" : "added", doc: {id, data: () => next}}); } catch(e){} }
-  map.set(id, next); render();
+  map.set(id, next); render(); cacheSoon();
 }
 
 export function subscribeEnv(){
@@ -374,7 +376,7 @@ export function openProfile(view){
       ${multi ? `<button class="red" data-act="leave">Sair de “${esc(envName(cur))}”</button>` : ""}
       ${S.mode === "remote" ? `<button class="quiet" data-act="logout">Sair da conta</button>` : ""}
     </div><div id="leaveBox"></div><p class="app-version" id="appVersion">${esc(versaoTexto)}</p>
-    <div id="diagBox" hidden><p class="app-version" style="margin-top:4px">${esc(otaLinha())}</p><p class="app-version" style="margin-top:4px">${esc(D.diagLinha())}</p></div>`, body => {
+    <div id="diagBox" hidden><p class="app-version" style="margin-top:4px">${esc(otaLinha())}</p><p class="app-version" style="margin-top:4px">${esc(D.diagLinha())}</p><p class="app-version" style="margin-top:4px">${esc(C.textoDiag())}</p></div>`, body => {
     carregarVersao().then(t => { const el = $("appVersion"); if (el) el.textContent = t; });
     /* 5 toques na versão em 3 s mostram/escondem o diagnóstico */
     let taps = [];
@@ -421,6 +423,18 @@ export async function startRemote(){
   S.booting = true;
   S.mode = "remote";
   await loadProfile();
+  /* abre na hora com os ambientes e a lista guardados (a rede só atualiza depois, sem bloquear); convite no link segue o caminho normal */
+  const guardados = envsGuardados();
+  if (guardados.length && !/^#e-/.test(location.hash || "")) {
+    P.envs = guardados;
+    switchEnv(P.current && P.envs.some(e => e.id === P.current) ? P.current : P.envs[0].id);
+    S.bootDone = true; S.booting = false; render();
+    loadEnvs().then(() => {
+      if (S.env && !P.envs.some(e => e.id === S.env)) { if (P.envs.length) switchEnv(P.envs[0].id); }
+      else render();
+    }).catch(() => {});
+    return;
+  }
   try { await loadEnvs(); }
   catch(e){
     P.envs = [];
