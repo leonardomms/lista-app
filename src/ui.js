@@ -118,18 +118,10 @@ export function renderList(){
   let banner = "";
   if (S.mode === "local") banner += `<div class="note">Modo local: esta lista está salva só neste aparelho e não sincroniza.</div>`;
   if (S.readonly) banner += `<div class="note">Você pode ver esta lista, mas não editar.</div>`;
-  const finished = !!(list.done && its.length && !open.length);
-  if (finished && !S.peek) banner += `<div class="finish"><div class="ring">${ICON_CHECK_XL}</div>
-      <h2>Compra <em>finalizada.</em></h2>
-      <p>${its.length} ${its.length === 1 ? "item riscado" : "itens riscados"}${list.title ? ` em “${esc(list.title)}”` : ""}. Bom proveito!</p>
-      <div class="finish-actions">${S.readonly ? "" : '<button class="btn primary" data-act="reuse">Usar a lista de novo</button>'}<button class="btn" data-act="peek">Ver itens riscados</button><button class="btn ghost" data-act="home">Voltar para as listas</button></div>
-      ${S.readonly ? "" : '<p class="hint">esqueceu algo? adicione na barra abaixo</p>'}
-      ${showFbPrompt() ? '<p class="fb-prompt"><button data-act="fb">Algo poderia ser melhor? Me conta</button><button data-act="fb-x" aria-label="Não mostrar de novo">×</button></p>' : ""}</div>`;
-  else if (finished) banner += `<div class="banner"><p><strong>Compra finalizada</strong>Mostrando os itens riscados.</p><button class="btn" data-act="hide-items">Ocultar</button></div>`;
-  else if (list.done) banner += `<div class="banner"><p><strong>Lista concluída</strong>Você ainda pode editar, ou reabrir para usar de novo.</p>${S.readonly?"":'<button class="btn primary" data-act="reuse">Usar de novo</button>'}</div>`;
-  else if (its.length && !open.length) banner += `<div class="banner"><p><strong>Tudo no carrinho</strong>Concluir manda a lista para “Concluídas”.</p>${S.readonly?"":'<button class="btn primary" data-act="finish">Concluir</button>'}</div>`;
+  /* lista toda riscada: sem tela nem aviso fixo; a lista fica como está (com os itens riscados) e só um toast avisa */
+  if (list.done && open.length) banner += `<div class="banner"><p><strong>Lista concluída</strong>Você ainda pode editar, ou reabrir para usar de novo.</p>${S.readonly?"":'<button class="btn primary" data-act="reuse">Usar de novo</button>'}</div>`;
   const bEl = $("listBanner"); if (bEl._html !== banner) { bEl.innerHTML = banner; bEl._html = banner; }
-  $("catsWrap").hidden = finished && !S.peek;
+  $("catsWrap").hidden = false;
   const sgEl = $("suggest");
   const sgHTML = (S.readonly || list.done || sgHidden.has(S.listId)) ? "" : suggestHTML(S.listId, its, list);
   if (sgEl._html !== sgHTML) { sgEl.innerHTML = sgHTML; sgEl._html = sgHTML; }
@@ -397,7 +389,7 @@ export function toggleItem(id){
   if (!checked && l0 && l0.done) write("lists", lid, {done:false}, "patch");
   if (checked) setTimeout(() => {
     const l = S.lists.get(lid), all = itemsOf(lid);
-    if (l && !l.done && all.length && all.every(i => i.checked)) { S.peek = false; logTrip(lid); write("lists", lid, {done:true}, "patch"); window.scrollTo({top:0, behavior:"smooth"}); }
+    if (l && !l.done && all.length && all.every(i => i.checked)) { S.peek = false; logTrip(lid); write("lists", lid, {done:true}, "patch"); toast("Compra finalizada. Tudo riscado!"); }
   }, 800);
 }
 export function deleteItem(id, silent){

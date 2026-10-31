@@ -23,7 +23,7 @@ App de lista de compras colaborativa em tempo real, migrando de um artefato do C
 - Riscar: o item fica riscado no lugar por cerca de 0,6 s e depois desliza para o fim da categoria (o último riscado fica acima dos anteriores); o check fica cinza.
 - Categoria toda riscada: recolhe e vai para o fim; reabre se entrar um item novo nela.
 - Ao arrastar uma categoria, todas recolhem.
-- Lista toda riscada: tela "Compra finalizada", com opções de ver os itens riscados e de usar a lista de novo.
+- Lista toda riscada: sem tela nem aviso fixo; a lista fica na tela com os itens riscados, vai para "Concluídas" e um toast diz "Compra finalizada". Para usar de novo: menu ⋮ da lista. (O convite de sugestão da 3ª compra, que ficava na tela antiga, está fora por ora.)
 - Enter cria o próximo item; Backspace num item vazio apaga e volta para o anterior.
 - Colar várias linhas cria vários itens.
 - Uma frase vira vários itens ("arroz, feijão, leite e pão" → 4 itens; "2 kg de arroz e 3 latas de atum" → 2; "papel higiênico" continua 1). Na dúvida, não divide. O chip da barra mostra "N itens" antes de enviar.
