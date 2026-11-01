@@ -22,7 +22,7 @@
 [hidden]{display:none!important}
 html,body{min-height:100%}
 body{margin-block:0}   /* tira os 8px de margem padrão de cima e de baixo (os laterais ficam como estavam) */
-body{background-color:var(--bg);background-image:radial-gradient(var(--dot) 1px, transparent 1.2px);background-size:18px 18px;background-attachment:fixed;color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.4;-webkit-tap-highlight-color:transparent;
+body{background-color:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.4;-webkit-tap-highlight-color:transparent;
   padding-left:max(16px, var(--safe-left));padding-right:max(16px, var(--safe-right))}
 body::before{content:"";position:fixed;inset:0 0 auto;height:var(--safe-top);z-index:10;background:var(--bg)}
 button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
@@ -304,7 +304,7 @@ input.invite-text{height:40px;font-family:var(--mono);font-size:12px}
 @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
 
 /* tela de login */
-.login{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background-color:var(--bg);background-image:radial-gradient(var(--dot) 1px, transparent 1.2px);background-size:18px 18px;padding:var(--safe-top) 16px var(--safe-bottom)}
+.login{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background-color:var(--bg);padding:var(--safe-top) 16px var(--safe-bottom)}
 .login .btn{height:46px;padding:0 24px;font-size:15px}
 .login .btn:disabled{opacity:.6}
 .login-err{margin:16px auto 0;max-width:300px;color:var(--danger);font-size:13px}
