@@ -2,7 +2,7 @@
   "appId": "br.com.listadafeira",
   "appName": "Lista",
   "webDir": "dist",
-  "backgroundColor": "#0a0a0b",
+  "backgroundColor": "#1f1e1d",
   "plugins": {
     "SystemBars": {
       "insetsHandling": "disable",

@@ -2,7 +2,7 @@
 /* Layout: uma coluna estreita tipo app de celular; cards por lista, seções por categoria, barra de adicionar fixa embaixo. Dark-first (como o HyperOS), com tema claro. */
 /* Visual único, escuro: preto com grade de pontinhos, cards de vidro fumê com borda fina e acento laranja com brilho. */
 :root{
-  --bg:#0a0a0b; --surface:rgba(24,23,24,.82); --surface-solid:#171617; --surface-2:#232123; --line:rgba(255,255,255,.08); --line-strong:rgba(255,255,255,.14);
+  --bg:#1f1e1d; --surface:rgba(24,23,24,.82); --surface-solid:#171617; --surface-2:#232123; --line:rgba(255,255,255,.08); --line-strong:rgba(255,255,255,.14);
   --fg:#f4f2ef; --muted:#9a948e; --faint:#5c5753;
   --dot:rgba(255,255,255,.075);
   --accent:#ff6b1a; --accent-2:#ff9a4d; --accent-ink:#140803; --accent-text:#ff8a3d; --accent-soft:rgba(255,107,26,.13);
@@ -122,14 +122,18 @@ h1 em{font-style:normal;background:linear-gradient(90deg,var(--accent-2),var(--a
 .palette button[aria-pressed="true"]{outline:2px solid var(--fg);outline-offset:2px}
 .home-actions{display:flex;gap:2px}
 .items{list-style:none;margin:0;padding:0;min-height:8px}
-.item{display:flex;align-items:center;gap:4px;border-radius:12px;min-height:46px;background:transparent}
+.item{position:relative;display:flex;align-items:center;gap:4px;border-radius:12px;min-height:58px;background:transparent}
+/* linha suave entre itens: começa no texto (depois da alça) e vai até a borda; some no último */
+.item::after{content:"";position:absolute;left:34px;right:0;bottom:0;height:1px;background:var(--line);pointer-events:none}
+.item:last-child::after{display:none}
+.ro .item::after{left:0}
 .item .grip{color:var(--faint);cursor:grab;touch-action:none;width:30px;height:44px;display:grid;place-items:center;flex:none}
-.item .check{width:56px;align-self:stretch;min-height:46px;display:grid;place-items:center end;padding-right:8px;flex:none;position:relative}
+.item .check{width:56px;align-self:stretch;min-height:58px;display:grid;place-items:center end;padding-right:8px;flex:none;position:relative}
 .item .check::before{content:"";grid-area:1/1;width:26px;height:26px;border-radius:50%;border:1.6px solid var(--faint);transition:background .15s,border-color .15s}
 .item .check svg{grid-area:1/1;justify-self:end;margin-right:6px;position:relative;opacity:0;color:var(--accent-ink);transform:scale(.6);transition:opacity .15s,transform .15s}
 .item .check[aria-checked="true"]::before{background:var(--accent);border-color:var(--accent);box-shadow:0 0 12px rgba(255,107,26,.5)}
 .item .check[aria-checked="true"] svg{opacity:1;transform:scale(1)}
-.item .txt{flex:1;min-width:0;background:none;border:0;outline:none;padding:12px 0;font-size:16px}
+.item .txt{flex:1;min-width:0;background:none;border:0;outline:none;padding:17px 0;font-size:16px;font-weight:500}
 .item .txt::placeholder{color:var(--faint)}
 .item .more{width:40px;height:44px;display:none;place-items:center;color:var(--faint);flex:none;border-radius:10px}
 .item:focus-within .more{display:grid}
