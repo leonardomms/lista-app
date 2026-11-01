@@ -2,7 +2,7 @@
 /* Layout: uma coluna estreita tipo app de celular; cards por lista, seções por categoria, barra de adicionar fixa embaixo. Dark-first (como o HyperOS), com tema claro. */
 /* Visual único, escuro: preto com grade de pontinhos, cards de vidro fumê com borda fina e acento laranja com brilho. */
 :root{
-  --bg:#1f1e1d; --surface:#2a2927; --surface-solid:#2a2927; --surface-2:#363431; --line:rgba(255,248,235,.08); --line-strong:rgba(255,248,235,.16);
+  --bg:#151515; --surface:#20201e; --surface-solid:#20201e; --surface-2:#2c2b29; --line:rgba(255,248,235,.08); --line-strong:rgba(255,248,235,.16);
   --fg:#faf9f5; --muted:#b0aca3; --faint:#7d7970;
   --dot:rgba(255,248,235,.04);
   --accent:#ff6b1a; --accent-2:#ff9a4d; --accent-ink:#140803; --accent-text:#ff8a3d; --accent-soft:rgba(255,107,26,.13);
@@ -171,7 +171,7 @@ h1 em{font-style:normal;background:var(--accent);-webkit-background-clip:text;ba
 
 /* add bar */
 .addbar{position:fixed;left:0;right:0;bottom:0;z-index:15;padding:10px max(16px, var(--safe-right)) calc(var(--safe-bottom) + 12px) max(16px, var(--safe-left));background:linear-gradient(to top,var(--bg) 70%,transparent)}
-.addbar-in{max-width:600px;margin:0 auto;display:flex;align-items:center;gap:8px;background:rgba(42,41,39,.92);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-radius:999px;padding:6px;box-shadow:var(--shadow),0 0 40px rgba(255,107,26,.12);border:1px solid var(--line-strong)}
+.addbar-in{max-width:600px;margin:0 auto;display:flex;align-items:center;gap:8px;background:rgba(32,32,30,.92);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-radius:999px;padding:6px;box-shadow:var(--shadow),0 0 40px rgba(255,107,26,.12);border:1px solid var(--line-strong)}
 .addbar-in:focus-within{border-color:rgba(255,107,26,.5)}
 #addInput{caret-color:var(--accent)}
 .catchip{display:flex;align-items:center;gap:6px;height:40px;padding:0 12px;border-radius:999px;background:var(--surface-2);font-size:13px;font-weight:600;white-space:nowrap;max-width:44%;flex:none}

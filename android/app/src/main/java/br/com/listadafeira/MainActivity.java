@@ -21,7 +21,7 @@ import com.getcapacitor.BridgeActivity;
  * env(safe-area-inset-*) = 0 e a página não soma o espaço duas vezes.
  */
 public class MainActivity extends BridgeActivity {
-    private static final int BG = 0xFF1F1E1D;
+    private static final int BG = 0xFF151515;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -29,8 +29,8 @@ public class MainActivity extends BridgeActivity {
 
         Window window = getWindow();
         WindowCompat.setDecorFitsSystemWindows(window, false);
-        window.setStatusBarColor(Color.TRANSPARENT);
-        window.setNavigationBarColor(Color.TRANSPARENT);
+        window.setStatusBarColor(BG);
+        window.setNavigationBarColor(BG);
         if (Build.VERSION.SDK_INT >= 29) window.setNavigationBarContrastEnforced(false);
 
         View decor = window.getDecorView();
