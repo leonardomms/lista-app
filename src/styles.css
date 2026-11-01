@@ -4,7 +4,6 @@
 :root{
   --bg:#151515; --surface:#20201e; --surface-solid:#20201e; --surface-2:#2c2b29; --line:rgba(255,248,235,.08); --line-strong:rgba(255,248,235,.16);
   --fg:#faf9f5; --muted:#b0aca3; --faint:#7d7970;
-  --dot:rgba(255,248,235,.04);
   --accent:#ff6b1a; --accent-2:#ff9a4d; --accent-ink:#140803; --accent-text:#ff8a3d; --accent-soft:rgba(255,107,26,.13);
   --glow:0 0 0 transparent;
   --danger:#ff5a4e;
