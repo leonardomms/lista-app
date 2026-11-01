@@ -132,7 +132,7 @@ h1 em{font-style:normal;background:var(--accent);-webkit-background-clip:text;ba
 .item .check svg{grid-area:1/1;justify-self:end;margin-right:6px;position:relative;opacity:0;color:var(--accent-ink);transform:scale(.6);transition:opacity .15s,transform .15s}
 .item .check[aria-checked="true"]::before{background:var(--accent);border-color:var(--accent);box-shadow:none}
 .item .check[aria-checked="true"] svg{opacity:1;transform:scale(1)}
-.item .txt{flex:1;min-width:0;background:none;border:0;outline:none;padding:17px 0;font-size:16px;font-weight:500}
+.item .txt{flex:1;min-width:0;background:none;border:0;outline:none;padding:17px 0;font-size:18px;font-weight:500}
 .item .txt::placeholder{color:var(--faint)}
 .item .more{width:40px;height:44px;display:none;place-items:center;color:var(--faint);flex:none;border-radius:10px}
 .item:focus-within .more{display:grid}
