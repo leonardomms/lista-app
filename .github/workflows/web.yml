@@ -1,6 +1,7 @@
-# Publica a versão web (mesmo código do APK) no GitHub Pages a cada push na main.
-# Requer: Settings > Pages > Source = GitHub Actions (repositório privado exige plano pago do GitHub).
-name: Web (GitHub Pages)
+# Publica a versão web (mesmo código do APK) no Cloudflare Pages a cada push na main.
+# Segredos: CLOUDFLARE_API_TOKEN (permissão Cloudflare Pages: Edit) e CLOUDFLARE_ACCOUNT_ID.
+# Sem eles o job só avisa e pula. O projeto "lista-app" é criado no primeiro deploy.
+name: Web (Cloudflare Pages)
 
 on:
   push:
@@ -9,35 +10,37 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: pages
+  group: web-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
+      - name: Verificar segredos
+        id: cf
+        run: |
+          if [ -n "$CLOUDFLARE_API_TOKEN" ] && [ -n "$CLOUDFLARE_ACCOUNT_ID" ]; then echo "ok=true" >> "$GITHUB_OUTPUT"
+          else echo "::notice::Segredos CLOUDFLARE_API_TOKEN/CLOUDFLARE_ACCOUNT_ID ausentes: pulando o deploy web."; fi
       - uses: actions/checkout@v5
+        if: steps.cf.outputs.ok == 'true'
       - uses: actions/setup-node@v5
+        if: steps.cf.outputs.ok == 'true'
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
       - name: Build web
-        run: npm run build
+        if: steps.cf.outputs.ok == 'true'
+        run: npm ci && npm run build
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
           VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
           VITE_GOOGLE_WEB_CLIENT_ID: ${{ vars.VITE_GOOGLE_WEB_CLIENT_ID }}
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist
-      - id: deploy
-        uses: actions/deploy-pages@v4
+      - name: Deploy
+        if: steps.cf.outputs.ok == 'true'
+        run: npx --yes wrangler@4 pages deploy dist --project-name=lista-app --branch=main
