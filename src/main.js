@@ -56,6 +56,7 @@ if (Capacitor.isNativePlatform()) {
   render();
   if (navigator.onLine !== false) D.comPrazo(() => D.sb.auth.getSession(), 6000).catch(e => { D.diag.err = (e && e.message) || String(e); });
 
+  try { const h = sessionStorage.getItem("lista-pos-login"); if (h) { sessionStorage.removeItem("lista-pos-login"); if (!location.hash) location.hash = h; } } catch(e){}
   atualizarSelo();
   S.myId = uid; S.mode = "remote"; S.userApi = {profiles: D.fetchProfiles};
   /* nome e cor: do cache local na hora; o servidor atualiza em seguida, se houver rede */

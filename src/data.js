@@ -1,6 +1,7 @@
 /* Camada do Supabase: cliente, conversão camelCase <-> snake_case (só aqui), leitura, escritas,
    Realtime e presença. Não mexe no estado da tela: quem chama (dados.js, ambientes.js) aplica o resultado. */
 import { createClient } from "@supabase/supabase-js";
+import { Capacitor } from "@capacitor/core";
 
 /* só a origem da URL (sem /rest/v1/ nem barra final); tira aspas, espaços e caracteres invisíveis.
    Atenção: não nomear nada de URL aqui, para não sombrear o URL global usado em new URL(). */
@@ -12,7 +13,7 @@ const KEY = limpa(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.e
 /* sem configuração (ex.: build sem .env), o app continua no modo local */
 export const enabled = !!(SB_URL && KEY);
 /* a sessão fica guardada no aparelho e o token é renovado sozinho quando há rede */
-export const sb = enabled ? createClient(SB_URL, KEY, {auth: {persistSession: true, autoRefreshToken: true}}) : null;
+export const sb = enabled ? createClient(SB_URL, KEY, {auth: {persistSession: true, autoRefreshToken: true, ...(Capacitor.isNativePlatform() ? {} : {flowType: "pkce"})}}   /* web: login Google por redirecionamento (PKCE volta com ?code=, sem brigar com o #e-… do convite) */) : null;
 /* chamadas de rede com prazo: sem conexão falha na hora; com rede ruim, depois de `ms`. Sem isso, um token vencido offline
    deixa toda chamada esperando a renovação do token (tentativas de até ~30 s) e o app parece travado ou deslogado. */
 export const comPrazo = (fn, ms = 7000) => navigator.onLine === false

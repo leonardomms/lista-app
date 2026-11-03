@@ -4,6 +4,7 @@ import { SocialLogin } from "@capgo/capacitor-social-login";
 import { sb, diag } from "./data.js";
 import { $ } from "./estado.js";
 import { limpar } from "./cache.js";
+import { Capacitor } from "@capacitor/core";
 import { ICON_BASKET } from "./icones.js";
 
 const WEB_CLIENT_ID = (import.meta.env.VITE_GOOGLE_WEB_CLIENT_ID || "").trim();
@@ -11,6 +12,13 @@ const hex = buf => [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, 
 let iniciado = false;
 
 export async function loginComGoogle(){
+  if (!Capacitor.isNativePlatform()) {
+    /* web: o convite (#e-…/#l-…) é guardado e devolvido depois do redirecionamento */
+    try { if (location.hash) sessionStorage.setItem("lista-pos-login", location.hash); } catch(e){}
+    const { error } = await sb.auth.signInWithOAuth({provider: "google", options: {redirectTo: location.origin + location.pathname}});
+    if (error) throw error;
+    return;
+  }
   if (!WEB_CLIENT_ID) throw new Error("Falta o VITE_GOOGLE_WEB_CLIENT_ID neste build.");
   if (!iniciado) { await SocialLogin.initialize({google: {webClientId: WEB_CLIENT_ID}}); iniciado = true; }
   const raw = hex(crypto.getRandomValues(new Uint8Array(16)));
