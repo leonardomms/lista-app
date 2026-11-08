@@ -174,11 +174,20 @@ h1 em{font-style:normal;background:var(--accent);-webkit-background-clip:text;ba
 .addbar-in:focus-within{border-color:rgba(255,107,26,.5)}
 #addInput{caret-color:var(--accent)}
 .catchip{display:flex;align-items:center;gap:6px;height:40px;padding:0 12px;border-radius:999px;background:var(--surface-2);font-size:13px;font-weight:600;white-space:nowrap;max-width:44%;flex:none}
-.catchip span{overflow:hidden;text-overflow:ellipsis}
-.catchip.auto::after{content:"auto";font-family:var(--mono);font-size:10px;color:var(--accent-text);font-weight:500;letter-spacing:.04em}
+.catchip span{overflow:hidden;text-overflow:ellipsis;font-family:var(--mono);font-size:12px}
+.catchip .tg{display:none;flex:none}
+.catchip.auto{color:var(--muted)}
+.catchip.auto .tg{display:block}
+.catchip.auto .sw{display:none}
+.catchip.sug{background:rgba(88,150,240,.14);color:#9bc2f7}
 #addInput{flex:1;min-width:0;background:none;border:0;outline:none;height:40px;padding:0 4px}
 #addInput::placeholder{color:var(--muted)}
-.micbtn{width:40px;height:40px;border-radius:50%;background:var(--surface-2);color:var(--fg);display:grid;place-items:center;flex:none;transition:background .2s,color .2s}
+.micbtn{width:40px;height:40px;border-radius:50%;background:var(--surface-2);color:var(--fg);display:grid;place-items:center;flex:none;transition:background .15s,color .15s}
+.micbtn svg{grid-area:1/1;transition:opacity .15s,transform .15s}
+.micbtn .ic-send{opacity:0;transform:scale(.7)}
+.micbtn.send{background:#D85A30;color:#fff}
+.micbtn.send .ic-send{opacity:1;transform:none}
+.micbtn.send .ic-mic{opacity:0;transform:scale(.7)}
 .micbtn.listening{background:var(--accent);color:var(--accent-ink);animation:listen 1.2s ease-in-out infinite}
 @keyframes listen{0%,100%{box-shadow:0 0 0 0 rgba(255,107,26,.5)}50%{box-shadow:0 0 0 8px rgba(255,107,26,0)}}
 .addbtn{width:40px;height:40px;border-radius:50%;background:var(--accent);color:var(--accent-ink);box-shadow:var(--glow);display:grid;place-items:center;flex:none}
@@ -318,7 +327,6 @@ input.invite-text{height:40px;font-family:var(--mono);font-size:12px}
 .vz-act .btn{height:44px}
 
 /* passada minimalista: lista vazia e menu do avatar */
-.catchip.auto::after{content:none}
 .envline{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;margin-bottom:6px}
 .env-pick{display:flex;align-items:center;gap:10px;min-width:0;flex:1;text-align:left;font-size:16px;height:44px}
 .env-pick.static{cursor:default}

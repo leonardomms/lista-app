@@ -451,29 +451,57 @@ export function deleteList(){
 
 
 /* ---------------- add bar ---------------- */
+/* categoria sugerida pelo histórico: item já existente cujo nome é igual ou começa com o texto (sem acento/maiúscula) */
+function historyCat(text){
+  const n = norm(text); if (!n) return null;
+  let best = null, bestExact = false, bestAt = -1;
+  for (const it of S.items.values()) {
+    const k = norm(it.text);
+    if (!k || !it.cat || it.cat === "outros" || !allCats().some(c => c.id === it.cat)) continue;
+    const exact = k === n;
+    if (!exact && !k.startsWith(n)) continue;
+    const at = it.createdAt || 0;
+    if (!best || (exact && !bestExact) || (exact === bestExact && at > bestAt)) { best = it.cat; bestExact = exact; bestAt = at; }
+  }
+  return best;
+}
 export function updateAddChip(){
-  const chip = $("addCat");
-  const many = splitItems($("addInput").value).length;
+  const chip = $("addCat"), btn = $("addBtn");
+  const val = $("addInput").value, txt = val.trim();
+  const listening = btn.classList.contains("listening");
+  /* botão único: microfone com o campo vazio, enviar quando há texto */
+  const send = !!txt && !listening;
+  btn.classList.toggle("send", send);
+  if (!listening) btn.setAttribute("aria-label", send ? "Adicionar" : "Ditar");
+  btn.hidden = btn.dataset.novoz === "1" && !send;
+  const many = splitItems(val).length;
+  const sw = chip.querySelector(".sw"), label = chip.querySelector("span");
+  chip.classList.remove("auto", "sug");
   if (many > 1 && !S.addCatManual) {
-    chip.querySelector(".sw").style.setProperty("--c", "var(--accent)");
-    chip.querySelector("span").textContent = many + " itens";
-    chip.classList.remove("auto");
+    sw.style.setProperty("--c", "var(--accent)");
+    label.textContent = many + " itens";
     return;
   }
-  const cid = S.addCatManual && S.addCat ? S.addCat : (guessCat($("addInput").value) || "outros");
-  if (!S.addCatManual) S.addCat = cid;
+  let cid = null;
+  if (S.addCatManual && S.addCat) cid = S.addCat;
+  else {
+    cid = historyCat(val);
+    S.addCat = cid;
+    chip.classList.add(cid ? "sug" : "auto");
+  }
+  if (!cid) { label.textContent = "Auto"; return; }
   const c = catById(cid);
-  chip.querySelector(".sw").style.setProperty("--c", c.color);
-  chip.querySelector("span").textContent = c.name;
-  chip.classList.toggle("auto", !S.addCatManual);
+  sw.style.setProperty("--c", c.color);
+  label.textContent = c.id === "outros" ? "Sem categoria" : c.name;
 }
-/* adiciona vários textos de uma vez (barra de adicionar e voz): categoria automática ou a escolhida no chip, que ensina o app */
+/* adiciona vários textos de uma vez (barra de adicionar e voz): categoria escolhida no chip (ensina o app), senão a do histórico, senão "outros" */
 export function addTexts(parts){
   parts = parts.map(t => t.trim()).filter(Boolean); if (!parts.length) return;
-  if (S.addCatManual && S.addCat) parts.forEach(t => learn(t, S.addCat));
-  const ids = parts.map(t => addItem(t, S.addCatManual ? S.addCat : null)).filter(Boolean);
+  const manual = S.addCatManual && S.addCat ? S.addCat : null;
+  if (manual) parts.forEach(t => learn(t, manual));
+  const ids = parts.map(t => addItem(t, manual || historyCat(t) || "outros")).filter(Boolean);
   if (ids.length > 1) toast(`${ids.length} itens adicionados`, () => ids.forEach(id => deleteItem(id, true)));
-  S.addCatManual = false; updateAddChip();
+  S.addCatManual = false; S.addCat = null; updateAddChip();
 }
 export function submitAdd(){
   const inp = $("addInput");
@@ -520,8 +548,8 @@ export function openItemSheet(id){
   });
 }
 export function openAddCatSheet(){
-  openSheet(`<h4>Categoria do próximo item</h4><p class="sub">Por padrão, a categoria é sugerida pelo nome do item.</p>${catGridHTML(S.addCatManual ? S.addCat : null)}
-    <div class="menu"><button data-act="auto">${ICON_SPARK}Sugerir automaticamente</button><button data-act="cats">${ICON_TAG}Editar categorias</button></div>`, body => {
+  openSheet(`<h4>Categoria do próximo item</h4><p class="sub">Vale só para este item. “Outros” é o grupo sem categoria.</p>${catGridHTML(S.addCatManual ? S.addCat : null)}
+    <div class="menu"><button data-act="auto">${ICON_SPARK}Voltar para Auto</button><button data-act="cats">${ICON_TAG}Editar categorias</button></div>`, body => {
     body.onclick = e => {
       const b = e.target.closest("[data-cat]");
       if (b) { S.addCat = b.dataset.cat; S.addCatManual = true; updateAddChip(); closeSheet(); $("addInput").focus(); return; }
