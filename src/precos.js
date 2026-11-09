@@ -5,6 +5,8 @@ import { S, $, esc } from "./estado.js";
 import { write, newId } from "./dados.js";
 import { keyOf } from "./categorias.js";
 import { placeFor, placeById } from "./locais.js";
+import { resolvePrice, forecast } from "./previsao.js";
+export { resolvePrice, forecast };
 
 export const fmt = n => "R$ " + Number(n).toLocaleString("pt-BR", {minimumFractionDigits: 2, maximumFractionDigits: 2});
 /* "4,99", "R$ 1.234,50" e "4.99" viram número; inválido vira null */
@@ -24,6 +26,12 @@ export function pricesOf(key){
 export function lastPrice(key, placeId){
   const l = pricesOf(key);
   return l.find(p => p.placeId === placeId) || l[0] || null;
+}
+
+export function forecastText(items){
+  const f = forecast(items, [...S.prices.values()], placeFor, keyOf);
+  if (!f.total && !f.missing) return "";
+  return [f.total ? "≈ " + fmt(f.total) : "", f.missing ? f.missing + " sem preço" : ""].filter(Boolean).join(" · ");
 }
 
 function salvar(it, v){

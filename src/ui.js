@@ -4,7 +4,7 @@ import { norm, guessCat, splitItems, learn, allCats, catById, sortedCatsFor, add
 import { S, shopping, myCreated, pendingBlank, expanded, hold, holdTimers, drafts, draftTimers, $, esc } from "./estado.js";
 import { itemsOf, newId, write } from "./dados.js";
 import { openHelp, envName, openProfile } from "./ambientes.js";
-import { askPrice, hidePriceBar, priceSheetHTML, bindPriceSheet } from "./precos.js";
+import { askPrice, hidePriceBar, forecastText, priceSheetHTML, bindPriceSheet } from "./precos.js";
 import { sgHidden, currentSuggestions, logTrip, suggestHTML, lsSet, showFbPrompt, openFeedback } from "./sugestoes.js";
 import { ICON_GRIP, ICON_CHECK, ICON_MORE, ICON_TRASH, ICON_UNDO, ICON_BROOM, ICON_COPY, ICON_CHECKBIG, ICON_PEOPLE, ICON_TAG, ICON_PLUS, ICON_CHECK_XL, ICON_CHEV, ICON_SPARK, ICON_BASKET } from "./icones.js";
 
@@ -113,6 +113,7 @@ export function renderList(){
   }
   $("progress").hidden = $("pbar").hidden = !its.length;
   $("progress").textContent = `${cart.length}/${its.length}`;
+  const fc = forecastText(its); $("forecast").textContent = fc; $("forecast").hidden = !fc;
   $("pbarFill").style.width = (its.length ? cart.length/its.length*100 : 0) + "%";
 
   // banner
