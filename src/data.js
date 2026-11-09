@@ -96,7 +96,8 @@ export async function updateEnv(env, patch){
 /* categorias e "aprendido": qualquer membro, pela função update_env_prefs (supabase/migrations).
    Se a função ainda não existe no banco, cai no update direto (só admin). */
 export async function updateEnvPrefs(env, p){
-  const { error } = await sb.rpc("update_env_prefs", {e: env, p_custom_categories: p.custom_categories ?? null, p_category_overrides: p.category_overrides ?? null, p_learned: p.learned ?? null});
+  const { error } = await sb.rpc("update_env_prefs", {e: env, p_custom_categories: p.custom_categories ?? null, p_category_overrides: p.category_overrides ?? null, p_learned: p.learned ?? null,
+    ...(p.places ? {p_places: p.places} : {}), ...(p.cat_places ? {p_cat_places: p.cat_places} : {})});
   if (!error) return;
   if (error.code === "PGRST202") return updateEnv(env, p);
   if (/sem_permissao/.test(error.message || "")) throw Object.assign(new Error("sem_permissao"), {code: "sem_permissao"});

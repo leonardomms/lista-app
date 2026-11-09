@@ -138,7 +138,7 @@ export function switchEnv(id){
   S.view = "home"; S.listId = null; S.peek = false; S.search = ""; $("searchInput").value = "";
   liMap.forEach(li => li.remove()); liMap.clear();
   secMap.forEach(sec => { if (sec._sortable) sec._sortable.destroy(); sec.remove(); }); secMap.clear();
-  S.lists = new Map(); S.items = new Map(); S.history = new Map(); S.customCats = []; S.catOverrides = {}; S.learned = {};
+  S.lists = new Map(); S.items = new Map(); S.history = new Map(); S.customCats = []; S.catOverrides = {}; S.learned = {}; S.places = null; S.catPlaces = null;
   S.envName = (P.envs.find(e => e.id === id) || {}).name || ""; S.envCreatedAt = 0; S.envBy = null; S.inviteToken = "";
   closeRoom();
   shopping.clear(); expanded.clear(); sgHidden.clear();
@@ -212,6 +212,8 @@ function applyEnvRow(r){
   if (Array.isArray(r.custom_categories)) S.customCats = r.custom_categories;
   if (r.category_overrides && typeof r.category_overrides === "object") S.catOverrides = r.category_overrides;
   if (r.learned && typeof r.learned === "object") S.learned = r.learned;
+  if (Array.isArray(r.places)) S.places = r.places;
+  if (r.cat_places && typeof r.cat_places === "object") S.catPlaces = r.cat_places;
 }
 function fetchMissingProfiles(ids){
   const need = ids.filter(id => !S.profiles[id]);
