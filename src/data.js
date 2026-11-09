@@ -34,13 +34,15 @@ export const fromList = r => ({title: r.title, done: r.done, catOrder: r.cat_ord
 export const fromItem = r => ({listId: r.list_id, text: r.text, cat: r.cat, order: r.ord, checked: r.checked, checkedAt: ms(r.checked_at), createdAt: ms(r.created_at), by: r.created_by || null});
 export const fromTrip = r => ({listId: r.list_id || null, at: ms(r.at), items: r.items || []});
 export const fromMember = r => ({role: r.role, creator: r.creator, removed: r.removed, joinedAt: ms(r.joined_at)});
-const FROM = {lists: fromList, items: fromItem, history: fromTrip};
+export const fromPrice = r => ({key: r.key, placeId: r.place_id || null, price: Number(r.price), at: ms(r.at)});
+const FROM = {lists: fromList, items: fromItem, history: fromTrip, prices: fromPrice};
 
-const TABLE = {lists: "lists", items: "items", history: "trips"};
+const TABLE = {lists: "lists", items: "items", history: "trips", prices: "prices"};
 const COLS = {
   lists: {title: ["title"], done: ["done"], catOrder: ["cat_order"], dismissed: ["dismissed"], createdAt: ["created_at", isoOpt]},
   items: {listId: ["list_id"], text: ["text"], cat: ["cat"], order: ["ord"], checked: ["checked"], checkedAt: ["checked_at", isoNull], createdAt: ["created_at", isoOpt], by: ["created_by"]},
   history: {listId: ["list_id"], at: ["at", isoOpt], items: ["items"]},
+  prices: {key: ["key"], placeId: ["place_id"], price: ["price"], at: ["at", isoOpt]},
 };
 export function toRow(coll, data){
   const out = {};
@@ -65,8 +67,8 @@ async function fetchAll(table, env, order){
   }
 }
 export async function loadEnv(env){
-  const [lists, items, trips, members, e] = await Promise.all([
-    fetchAll("lists", env, "created_at"), fetchAll("items", env, "created_at"), fetchAll("trips", env, "at"),
+  const [lists, items, trips, prices, members, e] = await Promise.all([
+    fetchAll("lists", env, "created_at"), fetchAll("items", env, "created_at"), fetchAll("trips", env, "at"), fetchAll("prices", env, "at"),
     sb.from("env_members").select("*").eq("env_id", env),
     sb.from("envs").select("*").eq("id", env).maybeSingle(),
   ]);
@@ -74,7 +76,7 @@ export async function loadEnv(env){
   if (e.error) throw e.error;
   if (!e.data) throw Object.assign(new Error("sem_acesso"), {code: "sem_acesso"});
   return {
-    lists: lists.map(r => [r.id, fromList(r)]), items: items.map(r => [r.id, fromItem(r)]), history: trips.map(r => [r.id, fromTrip(r)]),
+    lists: lists.map(r => [r.id, fromList(r)]), items: items.map(r => [r.id, fromItem(r)]), history: trips.map(r => [r.id, fromTrip(r)]), prices: prices.map(r => [r.id, fromPrice(r)]),
     members: members.data.map(r => [r.user_id, fromMember(r)]), env: e.data,
   };
 }
@@ -140,7 +142,7 @@ export function subscribeEnv(env, h){
   let down = false;
   const ch = sb.channel("db:" + env);
   const on = (table, filter) => ch.on("postgres_changes", {event: "*", schema: "public", table, filter}, p => h.change(table, p));
-  on("items", "env_id=eq." + env); on("lists", "env_id=eq." + env); on("trips", "env_id=eq." + env);
+  on("items", "env_id=eq." + env); on("lists", "env_id=eq." + env); on("trips", "env_id=eq." + env); on("prices", "env_id=eq." + env);
   on("env_members", "env_id=eq." + env); on("envs", "id=eq." + env);
   ch.subscribe(status => {
     if (status === "SUBSCRIBED") { if (down) { down = false; h.resync(); } }

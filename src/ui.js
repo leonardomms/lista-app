@@ -4,6 +4,7 @@ import { norm, guessCat, splitItems, learn, allCats, catById, sortedCatsFor, add
 import { S, shopping, myCreated, pendingBlank, expanded, hold, holdTimers, drafts, draftTimers, $, esc } from "./estado.js";
 import { itemsOf, newId, write } from "./dados.js";
 import { openHelp, envName, openProfile } from "./ambientes.js";
+import { askPrice, hidePriceBar, priceSheetHTML, bindPriceSheet } from "./precos.js";
 import { sgHidden, currentSuggestions, logTrip, suggestHTML, lsSet, showFbPrompt, openFeedback } from "./sugestoes.js";
 import { ICON_GRIP, ICON_CHECK, ICON_MORE, ICON_TRASH, ICON_UNDO, ICON_BROOM, ICON_COPY, ICON_CHECKBIG, ICON_PEOPLE, ICON_TAG, ICON_PLUS, ICON_CHECK_XL, ICON_CHEV, ICON_SPARK, ICON_BASKET } from "./icones.js";
 
@@ -385,6 +386,7 @@ export function toggleItem(id){
   clearTimeout(holdTimers.get(id));
   holdTimers.set(id, setTimeout(() => { hold.delete(id); holdTimers.delete(id); render(); }, 600));
   write("items", id, {checked, checkedAt: checked ? Date.now() : 0}, "patch");
+  if (checked) askPrice(id); else hidePriceBar(id);
   const lid = it.listId, l0 = S.lists.get(lid);
   if (!checked && l0 && l0.done) write("lists", lid, {done:false}, "patch");
   if (checked) setTimeout(() => {
@@ -531,8 +533,9 @@ export function catGridHTML(selected){
 export function openItemSheet(id){
   const it = S.items.get(id); if (!it) return;
   flushDraft(id);
-  openSheet(`<h4>${esc(it.text || "Item sem nome")}</h4><p class="sub">Mover para outra categoria</p>${catGridHTML(it.cat)}
+  openSheet(`<h4>${esc(it.text || "Item sem nome")}</h4><p class="sub">Mover para outra categoria</p>${catGridHTML(it.cat)}${priceSheetHTML(it)}
     <div class="menu"><button data-act="cats">${ICON_TAG}Editar categorias</button><button class="red" data-act="del-item">${ICON_TRASH}Excluir item</button></div>`, body => {
+    bindPriceSheet(body, it, closeSheet);
     body.onclick = e => {
       const b = e.target.closest("[data-cat]");
       if (b) { const cat = b.dataset.cat; const cur = S.items.get(id); if (cur && cur.cat !== cat) { write("items", id, {cat, order: nextOrderInCat(cur.listId, cat)}, "patch"); learn(cur.text, cat); } closeSheet(); return; }

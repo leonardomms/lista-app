@@ -374,3 +374,16 @@ input.invite-text{height:40px;font-family:var(--mono);font-size:12px}
 .plrow .plcnpj:focus{border-bottom-color:var(--accent)}
 .cprow .cpname{flex:1 1 100%;padding:4px 6px 0;font-size:15px}
 .cprow select{flex:1;min-width:0;height:40px;background:var(--surface-solid);color:inherit;border:1px solid var(--line);border-radius:10px;padding:0 8px;font-size:14px}
+
+/* preço ao riscar e na folha do item */
+.pricebar{position:fixed;left:50%;bottom:calc(var(--safe-bottom) + 96px);transform:translate(-50%,20px);background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:14px;padding:6px 6px 6px 14px;display:flex;align-items:center;gap:8px;font-size:14px;z-index:49;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;width:calc(100% - 32px);max-width:420px;box-shadow:var(--shadow)}
+.pricebar.on{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+.toast.on ~ .pricebar{bottom:calc(var(--safe-bottom) + 160px)}
+.sheet.on ~ .pricebar{display:none}
+.pricebar .pb-t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)}
+.pricebar input,.priceedit input{width:96px;height:38px;border-radius:10px;background:var(--surface-2);border:1px solid var(--line);color:var(--fg);padding:0 10px;font-family:"Geist Mono",monospace;font-size:15px;text-align:right}
+.pricebar .pb-ok{height:38px;padding:0 14px;border-radius:999px;background:var(--accent);color:var(--accent-ink);font-weight:700}
+.pricebar .pb-x{width:34px;height:38px;color:var(--faint);font-size:18px}
+.priceedit{display:flex;align-items:center;gap:8px;margin:12px 0}
+.priceedit .pe-l{flex:1;min-width:0;color:var(--muted);font-size:13px}
+.priceedit .btn.ghost{background:none;color:var(--muted)}

@@ -13,13 +13,13 @@ export function itemsOf(listId){ const out=[]; for (const [id,it] of S.items) if
 /* ---------------- persistência local (modo local) ---------------- */
 export const LS_KEY = "lista-feira-local-v1";
 export function saveLocal(){
-  try { localStorage.setItem(lsKey(), JSON.stringify({lists:[...S.lists], items:[...S.items], customCats:S.customCats, catOverrides:S.catOverrides, learned:S.learned, places:S.places, catPlaces:S.catPlaces, history:[...S.history]})); } catch(e){}
+  try { localStorage.setItem(lsKey(), JSON.stringify({lists:[...S.lists], items:[...S.items], customCats:S.customCats, catOverrides:S.catOverrides, learned:S.learned, places:S.places, catPlaces:S.catPlaces, history:[...S.history], prices:[...S.prices]})); } catch(e){}
 }
 export function loadLocal(){
   try {
     const raw = localStorage.getItem(lsKey()); if (!raw) return;
     const d = JSON.parse(raw);
-    S.lists = new Map(d.lists||[]); S.items = new Map(d.items||[]); S.customCats = d.customCats||[]; S.catOverrides = d.catOverrides||{}; S.learned = d.learned||{}; S.places = d.places||null; S.catPlaces = d.catPlaces||null; S.history = new Map(d.history||[]);
+    S.lists = new Map(d.lists||[]); S.items = new Map(d.items||[]); S.customCats = d.customCats||[]; S.catOverrides = d.catOverrides||{}; S.learned = d.learned||{}; S.places = d.places||null; S.catPlaces = d.catPlaces||null; S.history = new Map(d.history||[]); S.prices = new Map(d.prices||[]);
   } catch(e){}
 }
 export const queues = new Map();
@@ -38,7 +38,7 @@ export function newId(){
   return `${h.slice(0,8)}-${h.slice(8,12)}-${h.slice(12,16)}-${h.slice(16,20)}-${h.slice(20)}`;
 }
 export function apply(coll, id, data, mode){
-  const m = coll === "lists" ? S.lists : coll === "history" ? S.history : S.items;
+  const m = coll === "lists" ? S.lists : coll === "history" ? S.history : coll === "prices" ? S.prices : S.items;
   if (mode === "del") m.delete(id);
   else if (mode === "set") m.set(id, {...data});
   else m.set(id, {...(m.get(id)||{}), ...data});
@@ -152,7 +152,7 @@ export function onWriteError(e){
 /* ---------------- cache local do ambiente (abre sem rede) ---------------- */
 export function salvarCache(){
   if (S.mode !== "remote" || !S.env || !S.myId || !S.loaded.lists) return;
-  C.gravar(S.myId, S.env, {lists: [...S.lists], items: [...S.items], history: [...S.history], members: [...(S.members || [])], profiles: S.profiles,
+  C.gravar(S.myId, S.env, {lists: [...S.lists], items: [...S.items], history: [...S.history], prices: [...S.prices], members: [...(S.members || [])], profiles: S.profiles,
     customCats: S.customCats, catOverrides: S.catOverrides, learned: S.learned, places: S.places, catPlaces: S.catPlaces, envName: S.envName, envBy: S.envBy, inviteToken: S.inviteToken, envCreatedAt: S.envCreatedAt});
 }
 let cacheT = null;
@@ -160,7 +160,7 @@ export function cacheSoon(){ clearTimeout(cacheT); cacheT = setTimeout(salvarCac
 export function carregarCache(env){
   const c = C.ler(S.myId, env); if (!c) return false;
   try {
-    S.lists = new Map(c.lists || []); S.items = new Map(c.items || []); S.history = new Map(c.history || []); S.members = new Map(c.members || []); Object.assign(S.profiles, c.profiles || {});
+    S.lists = new Map(c.lists || []); S.items = new Map(c.items || []); S.history = new Map(c.history || []); S.prices = new Map(c.prices || []); S.members = new Map(c.members || []); Object.assign(S.profiles, c.profiles || {});
     S.customCats = c.customCats || []; S.catOverrides = c.catOverrides || {}; S.learned = c.learned || {}; S.places = c.places || null; S.catPlaces = c.catPlaces || null;
     S.envName = c.envName || S.envName; S.envBy = c.envBy || null; S.inviteToken = c.inviteToken || ""; S.envCreatedAt = c.envCreatedAt || 0;
     C.info.fonte = "cache";

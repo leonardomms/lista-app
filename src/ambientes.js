@@ -138,7 +138,7 @@ export function switchEnv(id){
   S.view = "home"; S.listId = null; S.peek = false; S.search = ""; $("searchInput").value = "";
   liMap.forEach(li => li.remove()); liMap.clear();
   secMap.forEach(sec => { if (sec._sortable) sec._sortable.destroy(); sec.remove(); }); secMap.clear();
-  S.lists = new Map(); S.items = new Map(); S.history = new Map(); S.customCats = []; S.catOverrides = {}; S.learned = {}; S.places = null; S.catPlaces = null;
+  S.lists = new Map(); S.items = new Map(); S.history = new Map(); S.prices = new Map(); S.customCats = []; S.catOverrides = {}; S.learned = {}; S.places = null; S.catPlaces = null;
   S.envName = (P.envs.find(e => e.id === id) || {}).name || ""; S.envCreatedAt = 0; S.envBy = null; S.inviteToken = "";
   closeRoom();
   shopping.clear(); expanded.clear(); sgHidden.clear();
@@ -184,7 +184,7 @@ export async function loadEnvData(first){
     return false;
   }
   if (S.env !== env || seq !== loadSeq) return false;
-  S.lists = new Map(d.lists); S.items = new Map(d.items); S.history = new Map(d.history); S.members = new Map(d.members);
+  S.lists = new Map(d.lists); S.items = new Map(d.items); S.history = new Map(d.history); S.prices = new Map(d.prices); S.members = new Map(d.members);
   applyEnvRow(d.env);
   reaplicarFila(env);      // o que ainda não foi enviado continua na tela
   redeOk(); C.info.fonte = "rede";
@@ -221,7 +221,7 @@ function fetchMissingProfiles(ids){
   D.fetchProfiles(need).then(ps => { Object.assign(S.profiles, ps); if (S._drawMembers && $("mList")) S._drawMembers(); renderPeers(); }).catch(()=>{});
 }
 const sameData = (a, b) => { for (const k of Object.keys(b)) if (JSON.stringify(a[k]) !== JSON.stringify(b[k])) return false; return true; };
-const COLL = {items: "items", lists: "lists", trips: "history"};
+const COLL = {items: "items", lists: "lists", trips: "history", prices: "prices"};
 
 /* um evento do Realtime; ecos do que a própria tela já aplicou são ignorados */
 export function applyChange(table, p){
@@ -235,7 +235,7 @@ export function applyChange(table, p){
     cacheSoon(); return;
   }
   const coll = COLL[table], id = row && row.id; if (!coll || !id) return;
-  const map = coll === "lists" ? S.lists : coll === "history" ? S.history : S.items;
+  const map = coll === "lists" ? S.lists : coll === "history" ? S.history : coll === "prices" ? S.prices : S.items;
   if (p.eventType === "DELETE") {
     if (!map.has(id) || isPending(coll, id)) return;
     map.delete(id); if (coll === "items") watchChange({type: "removed", doc: {id, data: () => ({})}});
