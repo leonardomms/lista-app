@@ -35,7 +35,12 @@ App de lista de compras colaborativa em tempo real, migrando de um artefato do C
 - Analytics e Clarity só depois do consentimento na primeira abertura.
 - Nunca envie o texto de itens, listas, ambientes ou nomes em eventos; no Clarity, mascare esses textos.
 
+## Como registrar etapas
+- Toda etapa de implementação termina com um registro: atualize "Progresso" abaixo (3 a 5 linhas: o que mudou, onde está o código, o que falta) e o status em `PREVISAO.md`, no mesmo commit da etapa.
+- Cada etapa é feita em conversa própria; o `CLAUDE.md` e o `PREVISAO.md` são a memória entre elas.
+
 ## Progresso
+- Previsão de gastos, Estágio 1/6 (locais de compra): feito e enviado. `src/locais.js` (tela "Locais de compra", aberta em Categorias), `placeFor(catId)` devolve `{def, fb}` (sem escolha, o padrão é o primeiro local). Dados por ambiente em `envs.places` e `envs.cat_places` (null = exemplos do app em `DEFAULT_PLACES`/`DEFAULT_CAT_PLACES`), `S.places`/`S.catPlaces`, mesmo caminho de categorias (fila offline, cache, Realtime, `update_env_prefs` na migration `20261109120000_places.sql`, que precisa ser rodada no Supabase). A lista principal não mudou. Estágio 2 precisa de preço por item e local, gravado ao riscar.
 - Passo 8.5 (voz): feito, não commitado. `src/voz.js` usa `@capacitor-community/speech-recognition` (pt-BR, parciais ao vivo no campo, tocar de novo para parar); no navegador, Web Speech API; sem reconhecimento, o botão some. O texto final passa por `splitItems` e abre uma folha de confirmação (editar/remover cada item); "Adicionar" usa `addTexts` (`src/ui.js`), o mesmo caminho da barra (categoria automática e aprendizado do chip manual). `RECORD_AUDIO` vem do manifesto do plugin. Falta testar no aparelho e declarar o microfone na Segurança dos dados do Google Play.
 - Ícone novo (adaptive icon gerado com `@capacitor/assets` a partir de `assets/`, fundo laranja #ff6b1a) e nome do app no celular "Lista" (`strings.xml` e `appName`); o pacote `br.com.listadafeira` e os textos dentro do app não mudaram.
 - Passada minimalista (só interface): lista vazia sem barra/contador e com a linha "Adicione o primeiro item"; chip de categoria sem o rótulo "auto"; placeholder "Adicionar item". Menu do avatar: uma linha de ambiente (nome + "N membros"; com 2+ ambientes o nome vira seletor), "Renomear" virou lápis na tela de Membros, itens só de texto, "Novo ambiente" abre a escolha Criar/Entrar com código, "Sair da conta" ao fim, e o diagnóstico (OTA/Supabase) só aparece com 5 toques na versão em 3 s.
