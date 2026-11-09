@@ -31,6 +31,13 @@ function save(){
 }
 const mat = () => { if (!Array.isArray(S.places)) S.places = DEFAULT_PLACES.map(p => ({...p})); if (!S.catPlaces) S.catPlaces = JSON.parse(JSON.stringify(DEFAULT_CAT_PLACES)); };
 
+/* usadas por "Importar nota" (src/nfce.js) */
+export function addPlace(name, cnpj){
+  mat(); const p = {id: "p-" + Math.random().toString(36).slice(2, 8), name, cnpj: cnpj || ""};
+  S.places = S.places.concat(p); save(); return p;
+}
+export function setPlaceCnpj(id, cnpj){ mat(); S.places = S.places.map(p => p.id === id ? {...p, cnpj} : p); save(); }
+
 export function openLocais(){
   if (S.readonly) return;
   const opts = (sel, empty) => `<option value="">${empty}</option>` + placesList().map(p => `<option value="${esc(p.id)}"${p.id === sel ? " selected" : ""}>${esc(p.name)}</option>`).join("");

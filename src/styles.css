@@ -388,3 +388,31 @@ input.invite-text{height:40px;font-family:var(--mono);font-size:12px}
 .priceedit .pe-l{flex:1;min-width:0;color:var(--muted);font-size:13px}
 .priceedit .btn.ghost{background:none;color:var(--muted)}
 .lmeta .forecast{font-family:var(--mono);font-size:12px;color:var(--faint);white-space:nowrap;font-variant-numeric:tabular-nums}
+
+/* Importar nota (src/nfce.js) */
+.imp-scan{width:100%;height:46px;margin-bottom:10px}
+.imp-cam{margin-bottom:10px;display:flex;flex-direction:column;gap:8px}
+.imp-cam video{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:14px;background:#000}
+.imp-paste{display:flex;gap:8px;margin:6px 0 4px}
+.imp-paste input,.imp-q{flex:1;min-width:0;height:42px;border-radius:11px;background:var(--surface-2);border:1px solid var(--line);color:var(--fg);padding:0 12px;font-size:15px}
+.imp-q{width:100%;margin-bottom:8px}
+.imp-msg{min-height:20px;margin:8px 0 0;color:var(--muted);font-size:13px}
+.imp-rows{display:flex;flex-direction:column;margin-bottom:12px}
+.imp-row{display:flex;align-items:center;gap:10px;min-height:56px;border-bottom:1px solid var(--line)}
+.imp-row.none{opacity:.6}
+.imp-chk{flex:none;width:26px;height:26px;border-radius:50%;border:2px solid var(--line-strong)}
+.imp-row.on .imp-chk{background:var(--accent);border-color:var(--accent)}
+.imp-row.on .imp-chk::after{content:"";display:block;width:6px;height:11px;margin:2px auto 0;border:solid var(--accent-ink);border-width:0 2.5px 2.5px 0;transform:rotate(45deg)}
+.imp-main{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;padding:8px 0}
+.imp-rn{font-size:12px;color:var(--faint);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.imp-sug{font-size:15px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.imp-h{font-style:normal;font-family:var(--mono);font-size:10px;color:var(--muted);border:1px solid var(--line-strong);border-radius:999px;padding:1px 7px;margin-left:4px}
+.imp-h.media{color:var(--accent-text);border-color:rgba(255,107,26,.4)}
+.imp-p{flex:none;font-family:var(--mono);font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.imp-go{width:100%;height:46px}
+.imp-go[disabled]{opacity:.45}
+.imp-back{height:36px;color:var(--muted);font-size:14px;margin-bottom:4px}
+.imp-opts{display:flex;flex-direction:column;margin-bottom:8px}
+.imp-opt{height:46px;text-align:left;padding:0 10px;border-radius:10px;font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.imp-opt[aria-pressed="true"]{color:var(--accent-text)}
+.imp-opt:hover{background:var(--surface-2)}

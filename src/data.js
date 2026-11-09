@@ -35,14 +35,16 @@ export const fromItem = r => ({listId: r.list_id, text: r.text, cat: r.cat, orde
 export const fromTrip = r => ({listId: r.list_id || null, at: ms(r.at), items: r.items || []});
 export const fromMember = r => ({role: r.role, creator: r.creator, removed: r.removed, joinedAt: ms(r.joined_at)});
 export const fromPrice = r => ({key: r.key, placeId: r.place_id || null, price: Number(r.price), at: ms(r.at)});
-const FROM = {lists: fromList, items: fromItem, history: fromTrip, prices: fromPrice};
+export const fromRef = r => ({kind: r.kind, ref: r.ref, key: r.key || null});
+const FROM = {lists: fromList, items: fromItem, history: fromTrip, prices: fromPrice, nfce: fromRef};
 
-const TABLE = {lists: "lists", items: "items", history: "trips", prices: "prices"};
+const TABLE = {lists: "lists", items: "items", history: "trips", prices: "prices", nfce: "nfce_refs"};
 const COLS = {
   lists: {title: ["title"], done: ["done"], catOrder: ["cat_order"], dismissed: ["dismissed"], createdAt: ["created_at", isoOpt]},
   items: {listId: ["list_id"], text: ["text"], cat: ["cat"], order: ["ord"], checked: ["checked"], checkedAt: ["checked_at", isoNull], createdAt: ["created_at", isoOpt], by: ["created_by"]},
   history: {listId: ["list_id"], at: ["at", isoOpt], items: ["items"]},
   prices: {key: ["key"], placeId: ["place_id"], price: ["price"], at: ["at", isoOpt]},
+  nfce: {kind: ["kind"], ref: ["ref"], key: ["key"]},
 };
 export function toRow(coll, data){
   const out = {};
@@ -67,8 +69,8 @@ async function fetchAll(table, env, order){
   }
 }
 export async function loadEnv(env){
-  const [lists, items, trips, prices, members, e] = await Promise.all([
-    fetchAll("lists", env, "created_at"), fetchAll("items", env, "created_at"), fetchAll("trips", env, "at"), fetchAll("prices", env, "at"),
+  const [lists, items, trips, prices, refs, members, e] = await Promise.all([
+    fetchAll("lists", env, "created_at"), fetchAll("items", env, "created_at"), fetchAll("trips", env, "at"), fetchAll("prices", env, "at"), fetchAll("nfce_refs", env, "at").catch(e => { if (e && (e.code === "PGRST205" || e.code === "42P01")) return []; throw e; }),
     sb.from("env_members").select("*").eq("env_id", env),
     sb.from("envs").select("*").eq("id", env).maybeSingle(),
   ]);
@@ -76,7 +78,7 @@ export async function loadEnv(env){
   if (e.error) throw e.error;
   if (!e.data) throw Object.assign(new Error("sem_acesso"), {code: "sem_acesso"});
   return {
-    lists: lists.map(r => [r.id, fromList(r)]), items: items.map(r => [r.id, fromItem(r)]), history: trips.map(r => [r.id, fromTrip(r)]), prices: prices.map(r => [r.id, fromPrice(r)]),
+    lists: lists.map(r => [r.id, fromList(r)]), items: items.map(r => [r.id, fromItem(r)]), history: trips.map(r => [r.id, fromTrip(r)]), prices: prices.map(r => [r.id, fromPrice(r)]), nfce: refs.map(r => [r.id, fromRef(r)]),
     members: members.data.map(r => [r.user_id, fromMember(r)]), env: e.data,
   };
 }
@@ -89,6 +91,23 @@ export function writeRow(coll, id, env, data, mode){
   if (mode === "set") return ok(t.upsert({id, env_id: env, ...toRow(coll, data)}));
   return ok(t.update(toRow(coll, data)).eq("id", id));
 }
+/* lê a nota pela Edge Function nfce-parse (link, QR "?p=chave|2|..." ou chave). Falha com Error cujo .code é:
+   offline | unauthorized | invalid_url | not_found | layout_changed | sefaz_unreachable | sefaz_error | key_mismatch | internal */
+export async function parseNota(url){
+  let res;
+  try { res = await comPrazo(() => sb.functions.invoke("nfce-parse", {body: {url}}), 25000); }
+  catch(e){ throw Object.assign(new Error("offline"), {code: "offline"}); }
+  const { data, error } = res;
+  if (!error) return data;
+  let code = error.name === "FunctionsFetchError" ? "offline" : "internal";
+  const r = error.context;
+  if (r && typeof r.json === "function") {
+    const j = await r.json().catch(() => null);
+    code = (j && j.error && j.error.code) || (r.status === 401 ? "unauthorized" : r.status >= 500 ? "sefaz_error" : code);
+  }
+  throw Object.assign(new Error(code), {code});
+}
+
 /* atualiza colunas do ambiente; sem linha devolvida = o banco (RLS) não deixou */
 export async function updateEnv(env, patch){
   const rows = await ok(sb.from("envs").update(patch).eq("id", env).select("id"));
@@ -142,7 +161,7 @@ export function subscribeEnv(env, h){
   let down = false;
   const ch = sb.channel("db:" + env);
   const on = (table, filter) => ch.on("postgres_changes", {event: "*", schema: "public", table, filter}, p => h.change(table, p));
-  on("items", "env_id=eq." + env); on("lists", "env_id=eq." + env); on("trips", "env_id=eq." + env); on("prices", "env_id=eq." + env);
+  on("items", "env_id=eq." + env); on("lists", "env_id=eq." + env); on("trips", "env_id=eq." + env); on("prices", "env_id=eq." + env); on("nfce_refs", "env_id=eq." + env);
   on("env_members", "env_id=eq." + env); on("envs", "id=eq." + env);
   ch.subscribe(status => {
     if (status === "SUBSCRIBED") { if (down) { down = false; h.resync(); } }
