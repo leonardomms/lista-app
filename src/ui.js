@@ -4,6 +4,7 @@ import { norm, guessCat, splitItems, learn, allCats, catById, sortedCatsFor, add
 import { S, shopping, myCreated, pendingBlank, expanded, hold, holdTimers, drafts, draftTimers, $, esc } from "./estado.js";
 import { itemsOf, newId, write } from "./dados.js";
 import { openHelp, envName, openProfile } from "./ambientes.js";
+import { askPrice, hidePriceBar, forecastText, priceSheetHTML, bindPriceSheet } from "./precos.js";
 import { sgHidden, currentSuggestions, logTrip, suggestHTML, lsSet, showFbPrompt, openFeedback } from "./sugestoes.js";
 import { ICON_GRIP, ICON_CHECK, ICON_MORE, ICON_TRASH, ICON_UNDO, ICON_BROOM, ICON_COPY, ICON_CHECKBIG, ICON_PEOPLE, ICON_TAG, ICON_PLUS, ICON_CHECK_XL, ICON_CHEV, ICON_SPARK, ICON_BASKET } from "./icones.js";
 
@@ -112,6 +113,7 @@ export function renderList(){
   }
   $("progress").hidden = $("pbar").hidden = !its.length;
   $("progress").textContent = `${cart.length}/${its.length}`;
+  const fc = forecastText(its); $("forecast").textContent = fc; $("forecast").hidden = !fc;
   $("pbarFill").style.width = (its.length ? cart.length/its.length*100 : 0) + "%";
 
   // banner
@@ -385,6 +387,7 @@ export function toggleItem(id){
   clearTimeout(holdTimers.get(id));
   holdTimers.set(id, setTimeout(() => { hold.delete(id); holdTimers.delete(id); render(); }, 600));
   write("items", id, {checked, checkedAt: checked ? Date.now() : 0}, "patch");
+  if (checked) askPrice(id); else hidePriceBar(id);
   const lid = it.listId, l0 = S.lists.get(lid);
   if (!checked && l0 && l0.done) write("lists", lid, {done:false}, "patch");
   if (checked) setTimeout(() => {
@@ -451,29 +454,57 @@ export function deleteList(){
 
 
 /* ---------------- add bar ---------------- */
+/* categoria sugerida pelo histórico: item já existente cujo nome é igual ou começa com o texto (sem acento/maiúscula) */
+function historyCat(text){
+  const n = norm(text); if (!n) return null;
+  let best = null, bestExact = false, bestAt = -1;
+  for (const it of S.items.values()) {
+    const k = norm(it.text);
+    if (!k || !it.cat || it.cat === "outros" || !allCats().some(c => c.id === it.cat)) continue;
+    const exact = k === n;
+    if (!exact && !k.startsWith(n)) continue;
+    const at = it.createdAt || 0;
+    if (!best || (exact && !bestExact) || (exact === bestExact && at > bestAt)) { best = it.cat; bestExact = exact; bestAt = at; }
+  }
+  return best;
+}
 export function updateAddChip(){
-  const chip = $("addCat");
-  const many = splitItems($("addInput").value).length;
+  const chip = $("addCat"), btn = $("addBtn");
+  const val = $("addInput").value, txt = val.trim();
+  const listening = btn.classList.contains("listening");
+  /* botão único: microfone com o campo vazio, enviar quando há texto */
+  const send = !!txt && !listening;
+  btn.classList.toggle("send", send);
+  if (!listening) btn.setAttribute("aria-label", send ? "Adicionar" : "Ditar");
+  btn.hidden = btn.dataset.novoz === "1" && !send;
+  const many = splitItems(val).length;
+  const sw = chip.querySelector(".sw"), label = chip.querySelector("span");
+  chip.classList.remove("auto", "sug");
   if (many > 1 && !S.addCatManual) {
-    chip.querySelector(".sw").style.setProperty("--c", "var(--accent)");
-    chip.querySelector("span").textContent = many + " itens";
-    chip.classList.remove("auto");
+    sw.style.setProperty("--c", "var(--accent)");
+    label.textContent = many + " itens";
     return;
   }
-  const cid = S.addCatManual && S.addCat ? S.addCat : (guessCat($("addInput").value) || "outros");
-  if (!S.addCatManual) S.addCat = cid;
+  let cid = null;
+  if (S.addCatManual && S.addCat) cid = S.addCat;
+  else {
+    cid = historyCat(val);
+    S.addCat = cid;
+    chip.classList.add(cid ? "sug" : "auto");
+  }
+  if (!cid) { label.textContent = "Auto"; return; }
   const c = catById(cid);
-  chip.querySelector(".sw").style.setProperty("--c", c.color);
-  chip.querySelector("span").textContent = c.name;
-  chip.classList.toggle("auto", !S.addCatManual);
+  sw.style.setProperty("--c", c.color);
+  label.textContent = c.id === "outros" ? "Sem categoria" : c.name;
 }
-/* adiciona vários textos de uma vez (barra de adicionar e voz): categoria automática ou a escolhida no chip, que ensina o app */
+/* adiciona vários textos de uma vez (barra de adicionar e voz): categoria escolhida no chip (ensina o app), senão a do histórico, senão "outros" */
 export function addTexts(parts){
   parts = parts.map(t => t.trim()).filter(Boolean); if (!parts.length) return;
-  if (S.addCatManual && S.addCat) parts.forEach(t => learn(t, S.addCat));
-  const ids = parts.map(t => addItem(t, S.addCatManual ? S.addCat : null)).filter(Boolean);
+  const manual = S.addCatManual && S.addCat ? S.addCat : null;
+  if (manual) parts.forEach(t => learn(t, manual));
+  const ids = parts.map(t => addItem(t, manual || historyCat(t) || "outros")).filter(Boolean);
   if (ids.length > 1) toast(`${ids.length} itens adicionados`, () => ids.forEach(id => deleteItem(id, true)));
-  S.addCatManual = false; updateAddChip();
+  S.addCatManual = false; S.addCat = null; updateAddChip();
 }
 export function submitAdd(){
   const inp = $("addInput");
@@ -503,8 +534,9 @@ export function catGridHTML(selected){
 export function openItemSheet(id){
   const it = S.items.get(id); if (!it) return;
   flushDraft(id);
-  openSheet(`<h4>${esc(it.text || "Item sem nome")}</h4><p class="sub">Mover para outra categoria</p>${catGridHTML(it.cat)}
+  openSheet(`<h4>${esc(it.text || "Item sem nome")}</h4><p class="sub">Mover para outra categoria</p>${catGridHTML(it.cat)}${priceSheetHTML(it)}
     <div class="menu"><button data-act="cats">${ICON_TAG}Editar categorias</button><button class="red" data-act="del-item">${ICON_TRASH}Excluir item</button></div>`, body => {
+    bindPriceSheet(body, it, closeSheet);
     body.onclick = e => {
       const b = e.target.closest("[data-cat]");
       if (b) { const cat = b.dataset.cat; const cur = S.items.get(id); if (cur && cur.cat !== cat) { write("items", id, {cat, order: nextOrderInCat(cur.listId, cat)}, "patch"); learn(cur.text, cat); } closeSheet(); return; }
@@ -520,8 +552,8 @@ export function openItemSheet(id){
   });
 }
 export function openAddCatSheet(){
-  openSheet(`<h4>Categoria do próximo item</h4><p class="sub">Por padrão, a categoria é sugerida pelo nome do item.</p>${catGridHTML(S.addCatManual ? S.addCat : null)}
-    <div class="menu"><button data-act="auto">${ICON_SPARK}Sugerir automaticamente</button><button data-act="cats">${ICON_TAG}Editar categorias</button></div>`, body => {
+  openSheet(`<h4>Categoria do próximo item</h4><p class="sub">Vale só para este item. “Outros” é o grupo sem categoria.</p>${catGridHTML(S.addCatManual ? S.addCat : null)}
+    <div class="menu"><button data-act="auto">${ICON_SPARK}Voltar para Auto</button><button data-act="cats">${ICON_TAG}Editar categorias</button></div>`, body => {
     body.onclick = e => {
       const b = e.target.closest("[data-cat]");
       if (b) { S.addCat = b.dataset.cat; S.addCatManual = true; updateAddChip(); closeSheet(); $("addInput").focus(); return; }

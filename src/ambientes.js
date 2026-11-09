@@ -7,6 +7,7 @@ import * as D from "./data.js";
 import { sair } from "./login.js";
 import { render, liMap, secMap, announce, openList, flushAll, updateAddChip, openSheet, closeSheet, watchChange, toast, setupRoom, renderPeers } from "./ui.js";
 import { sgHidden, canFeedback, openFeedback, openInbox } from "./sugestoes.js";
+import { openImportar } from "./nfce.js";
 import { versaoTexto, carregarVersao, otaLinha } from "./versao.js";
 import { ICON_COPY, ICON_PEOPLE, ICON_TEAM, ICON_WA, ICON_MAIL, ICON_CHAT, ICON_INBOX, ICON_BACK, ICON_PENCIL_L, ICON_PLUS_L, ICON_KEY, ICON_EXIT } from "./icones.js";
 
@@ -138,7 +139,7 @@ export function switchEnv(id){
   S.view = "home"; S.listId = null; S.peek = false; S.search = ""; $("searchInput").value = "";
   liMap.forEach(li => li.remove()); liMap.clear();
   secMap.forEach(sec => { if (sec._sortable) sec._sortable.destroy(); sec.remove(); }); secMap.clear();
-  S.lists = new Map(); S.items = new Map(); S.history = new Map(); S.customCats = []; S.catOverrides = {}; S.learned = {};
+  S.lists = new Map(); S.items = new Map(); S.history = new Map(); S.prices = new Map(); S.nfce = new Map(); S.customCats = []; S.catOverrides = {}; S.learned = {}; S.places = null; S.catPlaces = null;
   S.envName = (P.envs.find(e => e.id === id) || {}).name || ""; S.envCreatedAt = 0; S.envBy = null; S.inviteToken = "";
   closeRoom();
   shopping.clear(); expanded.clear(); sgHidden.clear();
@@ -184,7 +185,7 @@ export async function loadEnvData(first){
     return false;
   }
   if (S.env !== env || seq !== loadSeq) return false;
-  S.lists = new Map(d.lists); S.items = new Map(d.items); S.history = new Map(d.history); S.members = new Map(d.members);
+  S.lists = new Map(d.lists); S.items = new Map(d.items); S.history = new Map(d.history); S.prices = new Map(d.prices); S.nfce = new Map(d.nfce); S.members = new Map(d.members);
   applyEnvRow(d.env);
   reaplicarFila(env);      // o que ainda não foi enviado continua na tela
   redeOk(); C.info.fonte = "rede";
@@ -212,6 +213,8 @@ function applyEnvRow(r){
   if (Array.isArray(r.custom_categories)) S.customCats = r.custom_categories;
   if (r.category_overrides && typeof r.category_overrides === "object") S.catOverrides = r.category_overrides;
   if (r.learned && typeof r.learned === "object") S.learned = r.learned;
+  if (Array.isArray(r.places)) S.places = r.places;
+  if (r.cat_places && typeof r.cat_places === "object") S.catPlaces = r.cat_places;
 }
 function fetchMissingProfiles(ids){
   const need = ids.filter(id => !S.profiles[id]);
@@ -219,7 +222,7 @@ function fetchMissingProfiles(ids){
   D.fetchProfiles(need).then(ps => { Object.assign(S.profiles, ps); if (S._drawMembers && $("mList")) S._drawMembers(); renderPeers(); }).catch(()=>{});
 }
 const sameData = (a, b) => { for (const k of Object.keys(b)) if (JSON.stringify(a[k]) !== JSON.stringify(b[k])) return false; return true; };
-const COLL = {items: "items", lists: "lists", trips: "history"};
+const COLL = {items: "items", lists: "lists", trips: "history", prices: "prices", nfce_refs: "nfce"};
 
 /* um evento do Realtime; ecos do que a própria tela já aplicou são ignorados */
 export function applyChange(table, p){
@@ -233,7 +236,7 @@ export function applyChange(table, p){
     cacheSoon(); return;
   }
   const coll = COLL[table], id = row && row.id; if (!coll || !id) return;
-  const map = coll === "lists" ? S.lists : coll === "history" ? S.history : S.items;
+  const map = coll === "lists" ? S.lists : coll === "history" ? S.history : coll === "prices" ? S.prices : coll === "nfce" ? S.nfce : S.items;
   if (p.eventType === "DELETE") {
     if (!map.has(id) || isPending(coll, id)) return;
     map.delete(id); if (coll === "items") watchChange({type: "removed", doc: {id, data: () => ({})}});
@@ -371,6 +374,7 @@ export function openProfile(view){
     <div class="menu plain">
       ${S.readonly || !cur ? "" : `<button data-act="invite">Convidar para “${esc(envName(cur))}”</button>`}
       <button data-act="newchoice">Novo ambiente</button>
+      ${S.mode === "remote" && !S.readonly && cur ? `<button data-act="nfce">Importar nota</button>` : ""}
       ${canFeedback() ? `<button data-act="feedback">Enviar sugestão</button>` : ""}
       ${S.isOwner && S.mode === "remote" ? `<button data-act="inbox">Sugestões recebidas${S.fbUnread ? ` <span class="chip">${S.fbUnread} nova${S.fbUnread > 1 ? "s" : ""}</span>` : ""}</button>` : ""}
       ${multi ? `<button class="red" data-act="leave">Sair de “${esc(envName(cur))}”</button>` : ""}
@@ -394,6 +398,7 @@ export function openProfile(view){
       else if (a === "inbox") openInbox();
       else if (a === "rename" || a === "new" || a === "code") openProfile(a);
       else if (a === "newchoice") openProfile("newchoice");
+      else if (a === "nfce") { closeSheet(); setTimeout(openImportar, 240); }
       else if (a === "logout") { closeSheet(); sair(); }
       else if (a === "leave") $("leaveBox").innerHTML = `<p class="sub" style="margin-top:12px">Sair de “${esc(envName(S.env))}”? As listas continuam lá para quem participa. Para voltar, você vai precisar do código.</p><div class="confirm"><button class="btn" data-act="cancel">Cancelar</button><button class="btn danger" data-act="leave-yes">Sair</button></div>`;
       else if (a === "cancel") $("leaveBox").innerHTML = "";

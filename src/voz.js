@@ -6,7 +6,7 @@ import { Capacitor } from "@capacitor/core";
 import { SpeechRecognition } from "@capacitor-community/speech-recognition";
 import { $, esc } from "./estado.js";
 import { splitItems } from "./categorias.js";
-import { updateAddChip, addTexts, toast, openSheet, closeSheet } from "./ui.js";
+import { updateAddChip, addTexts, submitAdd, toast, openSheet, closeSheet } from "./ui.js";
 import { online } from "./rede.js";
 
 const nativo = Capacitor.isNativePlatform();
@@ -22,8 +22,9 @@ function estado(on){
   ouvindo = on;
   const btn = $("addBtn"), inp = $("addInput");
   btn.classList.toggle("listening", on);
-  btn.setAttribute("aria-label", on ? "Parar de ouvir" : "Ditar itens por voz");
+  if (on) btn.setAttribute("aria-label", "Parar de ouvir");
   inp.placeholder = on ? "Ouvindo… fale os itens" : "Adicionar item";
+  updateAddChip();
 }
 
 /* fim da escuta: se ouviu algo, abre a confirmação */
@@ -97,9 +98,12 @@ export async function bindVoz(){
   let ok = false;
   if (nativo) { try { ok = (await SpeechRecognition.available()).available; } catch(e){ ok = false; } }
   else ok = !!WebSR;
-  btn.hidden = !ok;
-  if (!ok) return;
+  /* sem voz o botão só aparece como "enviar" (updateAddChip) */
+  btn.dataset.novoz = ok ? "0" : "1";
+  updateAddChip();
   btn.onclick = () => {
+    if (!ouvindo && $("addInput").value.trim()) { submitAdd(); return; }
+    if (!ok) return;
     if (ouvindo) { if (encerrar) encerrar(); if (!nativo) return; terminar(); return; }
     if (!online()) { toast("Voz precisa de internet"); return; }
     if (nativo) ouvirNativo(); else ouvirWeb();

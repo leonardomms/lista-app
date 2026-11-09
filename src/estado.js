@@ -3,7 +3,7 @@
 /* ---------------- estado ---------------- */
 export const S = {
   mode:"loading", db:null, userApi:null, room:null,
-  lists:new Map(), items:new Map(), history:new Map(), customCats:[], catOverrides:{}, learned:{},
+  lists:new Map(), items:new Map(), history:new Map(), prices:new Map(), nfce:new Map(), customCats:[], catOverrides:{}, learned:{}, places:null, catPlaces:null,
   loaded:{lists:false, items:false},
   view:"home", listId:null, search:"", showDone:false, showCart:true,
   readonly:false, peers:[], profiles:{}, dragging:false, pendingRender:false,

@@ -9,3 +9,6 @@ android/.gradle
 *.keystore
 local.properties
 .claude/settings.local.json
+
+# arquivos temporários da CLI do Supabase
+supabase/.temp/

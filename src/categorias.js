@@ -1,7 +1,8 @@
 /* Categorias: dicionário de palavras, divisão de frases em itens e o que o app aprende (sem IA). */
 import { S, $, esc } from "./estado.js";
 import { saveLocal, write, writeEnvConfig } from "./dados.js";
-import { render, openSheet, toast } from "./ui.js";
+import { render, openSheet, closeSheet, toast } from "./ui.js";
+import { openLocais } from "./locais.js";
 import { ICON_TRASH, ICON_UNDO, ICON_SPARK } from "./icones.js";
 
 /* ---------------- categorias ---------------- */
@@ -193,7 +194,7 @@ export function openCatManager(focusId){
   openSheet(`<h4>Categorias</h4><p class="sub">Toque no nome para renomear e na cor para trocar. Ao excluir, os itens vão para “Outros”.</p>
     <div class="catrows" id="catRows">${rows()}</div>
     <form class="newcat" data-form="newcat"><input id="newCatName" placeholder="Nova categoria (ex.: Farmácia)" autocomplete="off" aria-label="Nova categoria" maxlength="40"><button class="btn primary" type="submit">Criar</button></form>
-    <div class="menu"><button data-act="restore">${ICON_UNDO}Restaurar categorias padrão</button>${Object.keys(S.learned||{}).length ? `<button data-act="forget">${ICON_SPARK}Esquecer o que o app aprendeu (${Object.keys(S.learned).length})</button>` : ""}</div>`, body => {
+    <div class="menu"><button data-act="places">Locais de compra</button><button data-act="restore">${ICON_UNDO}Restaurar categorias padrão</button>${Object.keys(S.learned||{}).length ? `<button data-act="forget">${ICON_SPARK}Esquecer o que o app aprendeu (${Object.keys(S.learned).length})</button>` : ""}</div>`, body => {
     const box = body.querySelector("#catRows");
     const redraw = () => { box.innerHTML = rows(); };
     body.onclick = e => {
@@ -212,6 +213,7 @@ export function openCatManager(focusId){
           toast(n ? `“${name}” excluída. ${n} ${n === 1 ? "item foi" : "itens foram"} para Outros` : `“${name}” excluída`);
         }
       }
+      else if (a === "places") { closeSheet(); setTimeout(openLocais, 240); }
       else if (a === "restore") { S.catOverrides = {}; writeCats(); redraw(); toast("Categorias padrão restauradas"); }
       else if (a === "forget") { S.learned = {}; writeLearned(); b.remove(); toast("Categorias aprendidas apagadas"); }
     };
