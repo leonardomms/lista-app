@@ -8,6 +8,8 @@ import { sair } from "./login.js";
 import { render, liMap, secMap, announce, openList, flushAll, updateAddChip, openSheet, closeSheet, watchChange, toast, setupRoom, renderPeers } from "./ui.js";
 import { sgHidden, canFeedback, openFeedback, openInbox } from "./sugestoes.js";
 import { openImportar } from "./nfce.js";
+import { openNotas } from "./notas.js";
+import { valoresOn, setValoresOn } from "./precos.js";
 import { versaoTexto, carregarVersao, otaLinha } from "./versao.js";
 import { ICON_COPY, ICON_PEOPLE, ICON_TEAM, ICON_WA, ICON_MAIL, ICON_CHAT, ICON_INBOX, ICON_BACK, ICON_PENCIL_L, ICON_PLUS_L, ICON_KEY, ICON_EXIT } from "./icones.js";
 
@@ -375,6 +377,8 @@ export function openProfile(view){
       ${S.readonly || !cur ? "" : `<button data-act="invite">Convidar para “${esc(envName(cur))}”</button>`}
       <button data-act="newchoice">Novo ambiente</button>
       ${S.mode === "remote" && !S.readonly && cur ? `<button data-act="nfce">Importar nota</button>` : ""}
+      ${S.mode === "remote" && cur ? `<button data-act="notas">Histórico de notas</button>` : ""}
+      <button data-act="valores" role="switch" aria-checked="${valoresOn()}" class="sw-row"><span>Valores na lista</span><i class="switch" aria-hidden="true"></i></button>
       ${canFeedback() ? `<button data-act="feedback">Enviar sugestão</button>` : ""}
       ${S.isOwner && S.mode === "remote" ? `<button data-act="inbox">Sugestões recebidas${S.fbUnread ? ` <span class="chip">${S.fbUnread} nova${S.fbUnread > 1 ? "s" : ""}</span>` : ""}</button>` : ""}
       ${multi ? `<button class="red" data-act="leave">Sair de “${esc(envName(cur))}”</button>` : ""}
@@ -399,6 +403,8 @@ export function openProfile(view){
       else if (a === "rename" || a === "new" || a === "code") openProfile(a);
       else if (a === "newchoice") openProfile("newchoice");
       else if (a === "nfce") { closeSheet(); setTimeout(openImportar, 240); }
+      else if (a === "notas") { closeSheet(); setTimeout(openNotas, 240); }
+      else if (a === "valores") { setValoresOn(!valoresOn()); b.setAttribute("aria-checked", String(valoresOn())); render(); }
       else if (a === "logout") { closeSheet(); sair(); }
       else if (a === "leave") $("leaveBox").innerHTML = `<p class="sub" style="margin-top:12px">Sair de “${esc(envName(S.env))}”? As listas continuam lá para quem participa. Para voltar, você vai precisar do código.</p><div class="confirm"><button class="btn" data-act="cancel">Cancelar</button><button class="btn danger" data-act="leave-yes">Sair</button></div>`;
       else if (a === "cancel") $("leaveBox").innerHTML = "";

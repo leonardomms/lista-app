@@ -55,20 +55,30 @@ export function openImportar(){
   const vivo = () => h && sheet().onclick === h && document.getElementById("sheet").classList.contains("on");
 
   /* ---- 1) entrada: câmera ou colar ---- */
-  const startHTML = msg => `<h4>Importar nota</h4>
-    <p class="sub">Atualiza os preços com a nota fiscal da compra (NFC-e do RS). Leia o QR ou cole o link ou a chave de 44 dígitos.</p>
-    ${temCamera() ? `<button class="btn primary imp-scan" data-act="scan">Ler QR da nota</button>
-    <div class="imp-cam" id="impCam" hidden><video id="impVid" playsinline muted></video><button class="btn" data-act="scan-stop">Cancelar</button></div>` : ""}
-    <form class="imp-paste" data-form="imp-paste"><input id="impIn" placeholder="Link ou chave da nota" aria-label="Link ou chave da nota" autocomplete="off" autocapitalize="off" spellcheck="false"><button class="btn" type="submit">Ler</button></form>
-    <p class="imp-msg" id="impMsg" role="status">${esc(msg || "")}</p>`;
-  const start = msg => { parar(); sheet().innerHTML = startHTML(msg); };
+  /* a câmera abre sozinha; colar link/chave fica como segunda opção (já aberta se não há câmera ou se deu erro) */
+  const startHTML = msg => { const cam = temCamera(), colar = !cam || !!msg; return `<h4>Importar nota</h4>
+    <p class="sub">Aponte a câmera para o QR da nota fiscal (NFC-e do RS).</p>
+    ${cam ? `<div class="imp-cam" id="impCam"><video id="impVid" playsinline muted></video></div>
+    <button class="btn primary imp-scan" data-act="scan" hidden>Ler QR da nota</button>` : ""}
+    <p class="imp-msg" id="impMsg" role="status">${esc(msg || "")}</p>
+    ${cam ? `<button class="btn imp-alt" data-act="paste"${colar ? " hidden" : ""}>Colar link ou chave</button>` : ""}
+    <form class="imp-paste" data-form="imp-paste"${colar ? "" : " hidden"}><input id="impIn" placeholder="Link ou chave de 44 dígitos" aria-label="Link ou chave da nota" autocomplete="off" autocapitalize="off" spellcheck="false"><button class="btn" type="submit">Ler</button></form>`; };
+  const start = msg => { parar(); sheet().innerHTML = startHTML(msg); if (!msg && temCamera()) scan(); };
   const msg = t => { const el = document.getElementById("impMsg"); if (el) el.textContent = t; };
+  const mostrarColar = () => {
+    const f = document.querySelector(".imp-paste"), b = document.querySelector(".imp-alt"); if (f) f.hidden = false; if (b) b.hidden = true;
+    const i = document.getElementById("impIn"); if (i) i.focus();
+  };
 
   async function scan(){
-    const cam = document.getElementById("impCam"), vid = document.getElementById("impVid"); if (!cam) return;
-    cam.hidden = false; msg("");
+    const cam = document.getElementById("impCam"), vid = document.getElementById("impVid"), btn = document.querySelector(".imp-scan"); if (!cam) return;
+    cam.hidden = false; if (btn) btn.hidden = true; msg("");
     try { stopCam = await lerQR(vid, texto => { stopCam = null; if (vivo()) ler(texto); }); }
-    catch(e){ cam.hidden = true; stopCam = null; msg("Não consegui abrir a câmera. Cole o link ou a chave aqui embaixo."); const i = document.getElementById("impIn"); if (i) i.focus(); }
+    catch(e){
+      cam.hidden = true; stopCam = null; if (btn) { btn.hidden = false; btn.textContent = "Tentar a câmera de novo"; }
+      msg(e && e.name === "NotAllowedError" ? "A câmera está bloqueada. Libere nas permissões do app ou cole o link ou a chave." : "Não consegui abrir a câmera. Cole o link ou a chave.");
+      mostrarColar();
+    }
   }
 
   /* ---- 2) ler a nota ---- */
@@ -130,11 +140,12 @@ export function openImportar(){
     const todos = ordem.concat(resto);
     const lista = q => {
       const t = keyOf(q);
-      return todos.filter(c => !t || c.key.includes(t)).slice(0, 60).map(c => `<button class="imp-opt" data-act="set" data-key="${esc(c.key)}" aria-pressed="${c.key === r.key}">${esc(c.label)}</button>`).join("")
-        || `<p class="sub">${cands.length ? "Nenhum item assim." : "Ainda não há itens na lista nem no histórico."}</p>`;
+      const achou = todos.filter(c => !t || c.key.includes(t)).slice(0, 60).map(c => `<button class="imp-opt" data-act="set" data-key="${esc(c.key)}" aria-pressed="${c.key === r.key}">${esc(c.label)}</button>`).join("");
+      const novo = t && !todos.some(c => c.key === t) ? `<button class="imp-opt imp-new" data-act="newitem" data-text="${esc(q.trim())}">+ Adicionar “${esc(q.trim())}”</button>` : "";
+      return achou + novo || `<p class="sub">${cands.length ? "Nenhum item assim." : "Ainda não há itens na lista nem no histórico."}</p>`;
     };
     sheet().innerHTML = `<button class="imp-back" data-act="back">‹ Voltar</button><h4 data-clarity-mask="true">${esc(r.line.name)}</h4>
-      <p class="sub">Qual item da sua lista é este? O preço vai para ele.</p>
+      <p class="sub">Qual item da sua lista é este? O preço vai para ele. Não está aí? Digite o nome para adicionar.</p>
       <input id="impQ" class="imp-q" placeholder="Buscar item" aria-label="Buscar item" autocomplete="off">
       <div class="imp-opts" id="impOpts" data-clarity-mask="true">${lista("")}</div>
       <div class="menu"><button data-act="skip">Pular este item</button></div>`;
@@ -149,13 +160,16 @@ export function openImportar(){
     const cnpj = fmtCnpj(nota.issuer.cnpj);
     const placeId = lugar.id || (lugar.vincular ? (setPlaceCnpj(lugar.vincular, cnpj), lugar.vincular) : addPlace(prettyName(nota.issuer.name) || "Local da nota", cnpj).id);
     const at = Date.parse(nota.date) || Date.now();
-    for (const r of sel) write("prices", newId(), {key: r.key, placeId, price: linePrice(r.line), at}, "set");
+    for (const r of sel) { r.priceId = newId(); write("prices", r.priceId, {key: r.key, placeId, price: linePrice(r.line), at}, "set"); }
     const links = vinculos();
     for (const r of sel) {
       const ref = nota.issuer.cnpj + "|" + r.line.code;
       if (r.line.code && links[ref] !== r.key) write("nfce", refId("l", ref), {kind: "link", ref, key: r.key}, "set");
     }
-    write("nfce", refId("r", nota.accessKey), {kind: "receipt", ref: nota.accessKey, key: null}, "set");
+    /* histórico: a nota como foi lida (sem nada do consumidor) e os ids dos preços que ela gravou, para poder desfazer */
+    const note = {placeId, placeName: (placesList().find(p => p.id === placeId) || {}).name || prettyName(nota.issuer.name), date: nota.date, total: nota.total,
+      lines: rows.slice().sort((a, b) => a.n - b.n).map(r => ({name: r.line.name, price: linePrice(r.line), label: r.on && r.key ? r.label : "", priceId: r.on && r.key ? r.priceId : null}))};
+    write("nfce", refId("r", nota.accessKey), {kind: "receipt", ref: nota.accessKey, key: null, note}, "set");
     closeAll();
     toast(`${sel.length} ${sel.length === 1 ? "preço atualizado" : "preços atualizados"}`);
   }
@@ -166,12 +180,17 @@ export function openImportar(){
       const b = e.target.closest("[data-act]"); if (!b) return;
       const a = b.dataset.act, row = b.closest(".imp-row"), i = row ? +row.dataset.i : -1;
       if (a === "scan") scan();
-      else if (a === "scan-stop") start();
+      else if (a === "paste") mostrarColar();
       else if (a === "vincular") { lugar = {vincular: b.dataset.id}; revisar(); }
       else if (a === "novo-local") { lugar = {criar: true}; revisar(); }
       else if (a === "tog") { if (rows[i].key) { rows[i].on = !rows[i].on; pintar(i); } }
       else if (a === "pick") abrirPicker(i);
       else if (a === "set") { const r = rows[pickI], c = cands.find(x => x.key === b.dataset.key); if (c) { r.key = c.key; r.label = c.label; r.conf = "manual"; r.on = true; } voltar(); }
+      else if (a === "newitem") {
+        const txt = (b.dataset.text || "").trim().replace(/^./, ch => ch.toUpperCase()), key = keyOf(txt), r = rows[pickI];
+        if (key) { if (!cands.some(x => x.key === key)) cands.push({key, label: txt}); const c = cands.find(x => x.key === key); r.key = c.key; r.label = c.label; r.conf = "manual"; r.on = true; }
+        voltar();
+      }
       else if (a === "skip") { rows[pickI].on = false; voltar(); }
       else if (a === "back") voltar();
       else if (a === "go") importar();
@@ -181,5 +200,6 @@ export function openImportar(){
       e.preventDefault(); const v = document.getElementById("impIn").value.trim(); if (v) ler(v);
     };
     body.oninput = e => { if (e.target.id === "impQ") document.getElementById("impOpts").innerHTML = body._lista(e.target.value); };
+    if (temCamera()) scan();
   });
 }

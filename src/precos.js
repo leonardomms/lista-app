@@ -28,10 +28,24 @@ export function lastPrice(key, placeId){
   return l.find(p => p.placeId === placeId) || l[0] || null;
 }
 
-export function forecastText(items){
-  const f = forecast(items, [...S.prices.values()], placeFor, keyOf);
-  if (!f.total && !f.missing) return "";
-  return [f.total ? "≈ " + fmt(f.total) : "", f.missing ? f.missing + " sem preço" : ""].filter(Boolean).join(" · ");
+/* valores sutis na lista (por item e por categoria); ligado por padrão, escolha guardada no aparelho */
+const VAL_KEY = "lista-valores-v1";
+export const valoresOn = () => { try { return localStorage.getItem(VAL_KEY) !== "0"; } catch(e){ return true; } };
+export const setValoresOn = on => { try { localStorage.setItem(VAL_KEY, on ? "1" : "0"); } catch(e){} };
+const num = n => Number(n).toLocaleString("pt-BR", {minimumFractionDigits: 2, maximumFractionDigits: 2});
+const priceOf = it => { const key = keyOf(it.text); if (!key) return null; const { def, fb } = placeFor(it.cat); return resolvePrice(key, def, fb, [...S.prices.values()]); };
+export function itemValor(it){ const p = priceOf(it); return p == null ? "" : num(p); }
+/* soma de todos os itens da categoria (riscados ou não) que têm preço */
+/* estimativa da lista toda: soma dos itens com preço (riscados ou não) e quantos ficaram sem preço */
+export function listaValor(arr){
+  const all = [...S.prices.values()]; let c = 0, n = 0, falta = 0;
+  for (const it of arr) { const key = keyOf(it.text); if (!key) continue; const { def, fb } = placeFor(it.cat); const p = resolvePrice(key, def, fb, all); if (p == null) falta++; else { c += Math.round(p * 100); n++; } }
+  return {text: n ? "R$ " + num(c / 100) : "", falta};
+}
+export function catValor(arr){
+  const all = [...S.prices.values()]; let c = 0, n = 0;
+  for (const it of arr) { const key = keyOf(it.text); if (!key) continue; const { def, fb } = placeFor(it.cat); const p = resolvePrice(key, def, fb, all); if (p != null) { c += Math.round(p * 100); n++; } }
+  return n ? "R$ " + num(c / 100) : "";
 }
 
 function salvar(it, v){
@@ -68,22 +82,23 @@ export function askPrice(id){
   bar.classList.add("on"); arm(6000);
 }
 
-/* ---- folha do item: último preço, corrigir ou apagar ---- */
+/* ---- folha do item: definir o preço à mão (vale mais que o das notas, pois é o registro mais novo), corrigir ou apagar o último ---- */
 export function priceSheetHTML(it){
-  const key = keyOf(it.text); if (!key) return "";
-  const last = pricesOf(key)[0]; if (!last) return "";
-  const pl = placeById(last.placeId);
-  return `<form class="priceedit" data-form="price"><span class="pe-l">Último preço${pl ? " · " + esc(pl.name) : ""}</span>
-    <input inputmode="decimal" autocomplete="off" aria-label="Preço" value="${last.price.toFixed(2).replace(".", ",")}"><button class="btn" type="submit">Salvar</button><button class="btn ghost" type="button" data-act="del-price">Apagar</button></form>`;
+  const key = keyOf(it.text); if (!key || S.readonly) return "";
+  const last = pricesOf(key)[0];
+  const pl = last && placeById(last.placeId);
+  return `<form class="priceedit" data-form="price"><span class="pe-l">${last ? "Preço" + (pl ? " · " + esc(pl.name) : "") : "Definir preço"}</span>
+    <input inputmode="decimal" autocomplete="off" placeholder="R$" aria-label="Preço" value="${last ? last.price.toFixed(2).replace(".", ",") : ""}"><button class="btn" type="submit">Salvar</button>${last ? `<button class="btn ghost" type="button" data-act="del-price">Apagar</button>` : ""}</form>`;
 }
 export function bindPriceSheet(body, it, close){
   const f = body.querySelector('[data-form="price"]'); if (!f) return;
-  const last = pricesOf(keyOf(it.text))[0]; if (!last) return;
+  const last = pricesOf(keyOf(it.text))[0];
   f.onsubmit = e => {
     e.preventDefault();
     const p = parsePreco(f.querySelector("input").value);
-    if (p && p !== last.price) write("prices", last.id, {price: p}, "patch");   // corrige o registro errado; os antigos ficam
+    if (p && (!last || p !== last.price)) salvar(it, f.querySelector("input").value);   // registro novo e mais recente: passa na frente do preço da nota; os antigos ficam
     close();
   };
-  f.querySelector('[data-act="del-price"]').onclick = () => { write("prices", last.id, null, "del"); close(); };
+  const del = f.querySelector('[data-act="del-price"]');
+  if (del) del.onclick = () => { write("prices", last.id, null, "del"); close(); };
 }

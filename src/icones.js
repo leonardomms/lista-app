@@ -31,3 +31,4 @@ export const ICON_PENCIL_L = sv('<path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z"/
 export const ICON_PLUS_L = sv('<path d="M12 5v14M5 12h14"/>');
 export const ICON_KEY = sv('<circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M17 6l3 3M15 8l2 2"/>');
 export const ICON_EXIT = sv('<path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4M10 16l-4-4 4-4M6 12h10"/>');
+export const ICON_RECEIPT = sv('<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>');

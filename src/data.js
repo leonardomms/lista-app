@@ -35,7 +35,7 @@ export const fromItem = r => ({listId: r.list_id, text: r.text, cat: r.cat, orde
 export const fromTrip = r => ({listId: r.list_id || null, at: ms(r.at), items: r.items || []});
 export const fromMember = r => ({role: r.role, creator: r.creator, removed: r.removed, joinedAt: ms(r.joined_at)});
 export const fromPrice = r => ({key: r.key, placeId: r.place_id || null, price: Number(r.price), at: ms(r.at)});
-export const fromRef = r => ({kind: r.kind, ref: r.ref, key: r.key || null});
+export const fromRef = r => ({kind: r.kind, ref: r.ref, key: r.key || null, note: r.data || null});
 const FROM = {lists: fromList, items: fromItem, history: fromTrip, prices: fromPrice, nfce: fromRef};
 
 const TABLE = {lists: "lists", items: "items", history: "trips", prices: "prices", nfce: "nfce_refs"};
@@ -44,7 +44,7 @@ const COLS = {
   items: {listId: ["list_id"], text: ["text"], cat: ["cat"], order: ["ord"], checked: ["checked"], checkedAt: ["checked_at", isoNull], createdAt: ["created_at", isoOpt], by: ["created_by"]},
   history: {listId: ["list_id"], at: ["at", isoOpt], items: ["items"]},
   prices: {key: ["key"], placeId: ["place_id"], price: ["price"], at: ["at", isoOpt]},
-  nfce: {kind: ["kind"], ref: ["ref"], key: ["key"]},
+  nfce: {kind: ["kind"], ref: ["ref"], key: ["key"], note: ["data"]},
 };
 export function toRow(coll, data){
   const out = {};

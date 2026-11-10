@@ -4,9 +4,10 @@ import { norm, guessCat, splitItems, learn, allCats, catById, sortedCatsFor, add
 import { S, shopping, myCreated, pendingBlank, expanded, hold, holdTimers, drafts, draftTimers, $, esc } from "./estado.js";
 import { itemsOf, newId, write } from "./dados.js";
 import { openHelp, envName, openProfile } from "./ambientes.js";
-import { askPrice, hidePriceBar, forecastText, priceSheetHTML, bindPriceSheet } from "./precos.js";
+import { askPrice, hidePriceBar, valoresOn, itemValor, catValor, listaValor, priceSheetHTML, bindPriceSheet } from "./precos.js";
 import { sgHidden, currentSuggestions, logTrip, suggestHTML, lsSet, showFbPrompt, openFeedback } from "./sugestoes.js";
-import { ICON_GRIP, ICON_CHECK, ICON_MORE, ICON_TRASH, ICON_UNDO, ICON_BROOM, ICON_COPY, ICON_CHECKBIG, ICON_PEOPLE, ICON_TAG, ICON_PLUS, ICON_CHECK_XL, ICON_CHEV, ICON_SPARK, ICON_BASKET } from "./icones.js";
+import { ICON_GRIP, ICON_CHECK, ICON_MORE, ICON_TRASH, ICON_UNDO, ICON_BROOM, ICON_COPY, ICON_CHECKBIG, ICON_PEOPLE, ICON_TAG, ICON_PLUS, ICON_CHECK_XL, ICON_CHEV, ICON_SPARK, ICON_BASKET, ICON_RECEIPT } from "./icones.js";
+import { openImportar } from "./nfce.js";
 
 /* ---------------- render ---------------- */
 export function render(){
@@ -80,9 +81,10 @@ export function cardHTML(l){
   const prev = total === 0 ? "Lista vazia" : open.length ? open.slice(0,8).map(i=>i.text||"…").join(" · ") : "Tudo no carrinho";
   const cats = [...new Set(open.map(i=>i.cat))].slice(0,8).map(c=>`<i style="--c:${catById(c).color}" title="${esc(catById(c).name)}"></i>`).join("");
   const pct = total ? Math.round(checked/total*100) : 0;
+  const lv = valoresOn() ? listaValor(its) : {text: ""};
   return `<article class="lcard ${l.done?"done":""}" data-open="${esc(l.id)}" tabindex="0" role="button" aria-label="Abrir ${esc(l.title||"lista sem nome")}">
     <div class="lbody" style="grid-column:1/3"><h2>${esc(l.title || "Lista sem nome")}</h2><p class="prev">${esc(prev)}</p>${cats?`<div class="cats">${cats}</div>`:""}</div>
-    <span class="count">${checked}/${total}</span>
+    <div class="lside"><span class="count">${checked}/${total}</span>${lv.text ? `<span class="lval">${esc(lv.text)}</span>` : ""}</div>
     <i class="bar" style="width:${l.done?100:pct}%"></i>
   </article>`;
 }
@@ -111,9 +113,10 @@ export function renderList(){
     for (const [cid, sec] of secMap) if (sec.isConnected) secBefore.set(cid, sec.getBoundingClientRect().top);
     for (const [id, li] of liMap) if (li.isConnected) { const r = li.getBoundingClientRect(); const sr = li.closest(".cat"); if (r.height && sr) before.set(id, {sec: sr.dataset.cat, off: r.top - sr.getBoundingClientRect().top}); }
   }
-  $("progress").hidden = $("pbar").hidden = !its.length;
-  $("progress").textContent = `${cart.length}/${its.length}`;
-  const fc = forecastText(its); $("forecast").textContent = fc; $("forecast").hidden = !fc;
+  $("pbar").hidden = !its.length;
+  const lt = $("listTotal"), lv = valoresOn() ? listaValor(its) : {text: "", falta: 0};
+  lt.hidden = !lv.text;
+  lt.textContent = lv.text; lt.title = lv.falta ? `Estimativa · ${lv.falta} ${lv.falta === 1 ? "item" : "itens"} sem preço` : "Estimativa da lista";
   $("pbarFill").style.width = (its.length ? cart.length/its.length*100 : 0) + "%";
 
   // banner
@@ -155,7 +158,7 @@ export function renderList(){
     sec.querySelector("h3").textContent = cat.name;
     sec.querySelector(".sw").style.setProperty("--c", cat.color);
     const arr = sortSec(byCat.get(cid));
-    sec.querySelector(".n").textContent = arr.filter(i=>i.checked).length + "/" + arr.length;
+    sec.querySelector(".cv").textContent = valoresOn() ? catValor(arr) : "";
     const allDone = arr.every(i => eff(i));
     sec.classList.toggle("all-done", allDone);
     if (!allDone) expanded.delete(cid);
@@ -215,7 +218,7 @@ export function renderList(){
 export function makeSection(cid){
   const sec = document.createElement("section");
   sec.className = "cat"; sec.dataset.cat = cid;
-  sec.innerHTML = `<div class="cat-head"><span class="cat-grip" aria-label="Arrastar categoria">${ICON_GRIP}</span><i class="sw"></i><button class="cat-name" aria-label="Editar categoria"><h3></h3></button><span class="n"></span><button class="cat-toggle" aria-label="Mostrar ou esconder itens riscados">${ICON_CHEV}</button></div><ul class="items" data-cat="${esc(cid)}"></ul><button class="add-in-cat">${ICON_PLUS}<span>Adicionar item</span></button>`;
+  sec.innerHTML = `<div class="cat-head"><span class="cat-grip" aria-label="Arrastar categoria">${ICON_GRIP}</span><i class="sw"></i><button class="cat-name" aria-label="Editar categoria"><h3></h3></button><span class="cv"></span><button class="cat-toggle" aria-label="Mostrar ou esconder itens riscados">${ICON_CHEV}</button></div><ul class="items" data-cat="${esc(cid)}"></ul><button class="add-in-cat">${ICON_PLUS}<span>Adicionar item</span></button>`;
   const ul = sec.querySelector("ul");
   if (Sortable) {
     sec._sortable = Sortable.create(ul, {
@@ -261,6 +264,7 @@ export function makeLi(id){
   li.className = "item"; li.dataset.id = id;
   li.innerHTML = `<span class="grip" aria-hidden="true">${ICON_GRIP}</span>
     <input class="txt" data-item-id="${esc(id)}" autocomplete="off" enterkeyhint="next" placeholder="Item" aria-label="Nome do item">
+    <span class="pv"></span>
     <span class="tag" hidden><i></i><b></b></span>
     <button class="more" aria-label="Opções do item">${ICON_MORE}</button>
     <button class="check" role="checkbox" aria-checked="false" aria-label="Riscar item">${ICON_CHECK}</button>`;
@@ -277,6 +281,7 @@ export function updateLi(li, it, isCart){
   const val = drafts.has(it.id) ? drafts.get(it.id) : (it.text || "");
   if (document.activeElement !== inp && inp.value !== val) inp.value = val;
   inp.readOnly = S.readonly;
+  li.querySelector(".pv").textContent = valoresOn() ? itemValor(it) : "";
   const tag = li.querySelector(".tag");
   tag.hidden = !isCart;
   if (isCart) { const c = catById(it.cat); tag.querySelector("i").style.setProperty("--c", c.color); tag.querySelector("b").textContent = c.name; }
@@ -576,6 +581,7 @@ export function openListMenu(){
       <button data-act="clear">${ICON_BROOM}Remover itens riscados</button>
       <button data-act="cats">${ICON_TAG}Editar categorias</button>
       <button data-act="dup">${ICON_COPY}Duplicar lista</button>
+      ${S.mode === "remote" ? `<button data-act="nfce">${ICON_RECEIPT}Importar nota</button>` : ""}
       <button data-act="done">${ICON_CHECKBIG}${l.done ? "Reabrir lista" : "Concluir lista"}</button>
       <button data-act="help">${ICON_PEOPLE}Compartilhar com alguém</button>
       <button class="red" data-act="del">${ICON_TRASH}Excluir lista</button>
@@ -587,6 +593,7 @@ export function openListMenu(){
       else if (a === "clear") { clearChecked(); closeSheet(); }
       else if (a === "dup") { closeSheet(); duplicateList(); }
       else if (a === "cats") { closeSheet(); setTimeout(() => openCatManager(), 240); }
+      else if (a === "nfce") { closeSheet(); setTimeout(openImportar, 240); }
       else if (a === "done") { if (!l.done) logTrip(S.listId); write("lists", S.listId, {done: !l.done}, "patch"); closeSheet(); if (!l.done) goHome(); }
       else if (a === "help") { closeSheet(); setTimeout(openHelp, 240); }
       else if (a === "del") {
