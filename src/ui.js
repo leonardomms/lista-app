@@ -161,6 +161,7 @@ export function renderList(){
     sec.querySelector(".cv").textContent = valoresOn() ? catValor(arr) : "";
     const allDone = arr.every(i => eff(i));
     sec.classList.toggle("all-done", allDone);
+    sec.querySelector(".cat-check").setAttribute("aria-checked", allDone ? "true" : "false");
     if (!allDone) expanded.delete(cid);
     sec.classList.toggle("collapsed", allDone && !expanded.has(cid));
     sec.classList.toggle("noitems", !arr.length);
@@ -218,7 +219,7 @@ export function renderList(){
 export function makeSection(cid){
   const sec = document.createElement("section");
   sec.className = "cat"; sec.dataset.cat = cid;
-  sec.innerHTML = `<div class="cat-head"><span class="cat-grip" aria-label="Arrastar categoria">${ICON_GRIP}</span><i class="sw"></i><button class="cat-name" aria-label="Editar categoria"><h3></h3></button><span class="cv"></span><button class="cat-toggle" aria-label="Mostrar ou esconder itens riscados">${ICON_CHEV}</button></div><ul class="items" data-cat="${esc(cid)}"></ul><button class="add-in-cat">${ICON_PLUS}<span>Adicionar item</span></button>`;
+  sec.innerHTML = `<div class="cat-head"><span class="cat-grip" aria-label="Arrastar categoria">${ICON_GRIP}</span><i class="sw"></i><button class="cat-name" aria-label="Editar categoria"><h3></h3><span class="cv"></span></button><button class="cat-toggle" aria-label="Mostrar ou esconder itens riscados">${ICON_CHEV}</button><button class="cat-check" role="checkbox" aria-checked="false" aria-label="Riscar todos os itens da categoria">${ICON_CHECK}</button></div><ul class="items" data-cat="${esc(cid)}"></ul><button class="add-in-cat">${ICON_PLUS}<span>Adicionar item</span></button>`;
   const ul = sec.querySelector("ul");
   if (Sortable) {
     sec._sortable = Sortable.create(ul, {
@@ -394,6 +395,30 @@ export function toggleItem(id){
   write("items", id, {checked, checkedAt: checked ? Date.now() : 0}, "patch");
   if (checked) askPrice(id); else hidePriceBar(id);
   const lid = it.listId, l0 = S.lists.get(lid);
+  if (!checked && l0 && l0.done) write("lists", lid, {done:false}, "patch");
+  if (checked) setTimeout(() => {
+    const l = S.lists.get(lid), all = itemsOf(lid);
+    if (l && !l.done && all.length && all.every(i => i.checked)) { S.peek = false; logTrip(lid); write("lists", lid, {done:true}, "patch"); toast("Compra finalizada. Tudo riscado!"); }
+  }, 800);
+}
+export function toggleCat(cid){
+  const sec = [...document.querySelectorAll("#catsWrap .cat")].find(s => s.dataset.cat === cid); if (!sec) return;
+  const its = [...sec.querySelectorAll("li.item")].map(li => S.items.get(li.dataset.id)).filter(Boolean);
+  if (!its.length) return;
+  const checked = its.some(i => !i.checked);   // algum aberto: riscar todos; senão desmarcar todos
+  const lid = its[0].listId;
+  for (const it of its) {
+    if (!!it.checked === checked) continue;
+    flushDraft(it.id);
+    const id = it.id;
+    if (!hold.has(id)) hold.set(id, !!it.checked);
+    clearTimeout(holdTimers.get(id));
+    holdTimers.set(id, setTimeout(() => { hold.delete(id); holdTimers.delete(id); render(); }, 600));
+    write("items", id, {checked, checkedAt: checked ? Date.now() : 0}, "patch");
+    if (!checked) hidePriceBar(id);
+  }
+  if (checked) shopping.add(lid);
+  const l0 = S.lists.get(lid);
   if (!checked && l0 && l0.done) write("lists", lid, {done:false}, "patch");
   if (checked) setTimeout(() => {
     const l = S.lists.get(lid), all = itemsOf(lid);
@@ -788,11 +813,12 @@ export function bindEvents(){
   });
   /* o ⋮ aparece só com o item em edição: sem isto o campo perde o foco antes do clique e o botão some */
   listView.addEventListener("mousedown", e => { if (e.target.closest(".more")) e.preventDefault(); });
-  bindLongPress(listView, ".cat-head", ".cat-grip, .cat-toggle", h => openBlockMenu(h.closest(".cat").dataset.cat));
+  bindLongPress(listView, ".cat-head", ".cat-grip, .cat-toggle, .cat-check", h => openBlockMenu(h.closest(".cat").dataset.cat));
   /* segurar um item abre a escolha de categoria (a mesma folha do ⋮) */
   bindLongPress(listView, ".item", ".check, .grip, .more", li => { try { document.activeElement.blur(); } catch(e){} openItemSheet(li.dataset.id); });
   bindLongPress($("homeBody"), ".lcard", null, c => openListCardMenu(c.dataset.open));
   listView.addEventListener("click", e => {
+    const cc = e.target.closest(".cat-check"); if (cc) { toggleCat(cc.closest(".cat").dataset.cat); return; }
     const ck = e.target.closest(".check"); if (ck) { toggleItem(ck.closest(".item").dataset.id); return; }
     const mo = e.target.closest(".more"); if (mo) { openItemSheet(mo.closest(".item").dataset.id); return; }
     const sa = e.target.closest("[data-sg]"); if (sa) { const sg = currentSuggestions.find(x => x.key === sa.dataset.sg); if (sg) addItem(sg.text, sg.cat); return; }
