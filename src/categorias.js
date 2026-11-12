@@ -3,7 +3,7 @@ import { S, $, esc } from "./estado.js";
 import { saveLocal, write, writeEnvConfig } from "./dados.js";
 import { render, openSheet, closeSheet, toast } from "./ui.js";
 import { openLocais } from "./locais.js";
-import { ICON_TRASH, ICON_UNDO, ICON_SPARK } from "./icones.js";
+import { ICON_TRASH, ICON_UNDO, ICON_SPARK, ICON_CHEV, ICON_HOUSE } from "./icones.js";
 
 /* ---------------- categorias ---------------- */
 export const DEFAULT_CATS = [
@@ -179,43 +179,59 @@ export function addCustomCat(name){
 
 export function openCatManager(focusId){
   if (S.readonly) return;
-  let openPal = null;
+  let openPal = null, editMode = false, confirmId = null, moreOpen = false;
   const uses = id => { let n = 0; for (const it of S.items.values()) if (it.cat === id) n++; return n; };
-  const rows = () => allCats().map(c => `
+  const rows = () => allCats().map(c => {
+    if (confirmId === c.id) {
+      const n = uses(c.id);
+      return `<div class="catrow-wrap" data-cat="${esc(c.id)}"><div class="catrow confirming"><p>Excluir “${esc(c.name)}”? ${n ? `${n === 1 ? "O item vai" : "Os " + n + " itens vão"} para “Outros”.` : "Nenhum item usa esta categoria."}</p><button class="btn" data-act="del-no">Cancelar</button><button class="btn danger" data-act="del-yes">Excluir</button></div></div>`;
+    }
+    return `
     <div class="catrow-wrap" data-cat="${esc(c.id)}">
       <div class="catrow">
         <button class="swbtn" data-act="pal" aria-label="Trocar cor de ${esc(c.name)}"><i style="--c:${esc(c.color)}"></i></button>
         <input class="catname" value="${esc(c.name)}" aria-label="Nome da categoria" autocomplete="off" enterkeyhint="done" maxlength="40">
         <span class="uses" title="Itens nesta categoria">${uses(c.id)}</span>
-        ${c.id === "outros" ? "" : `<button class="del" data-act="del" aria-label="Excluir ${esc(c.name)}">${ICON_TRASH}</button>`}
+        ${editMode && c.id !== "outros" ? `<button class="del" data-act="del" aria-label="Excluir ${esc(c.name)}">${ICON_TRASH}</button>` : ""}
       </div>
       ${openPal === c.id ? `<div class="palette">${PALETTE.map(col => `<button data-color="${col}" style="--c:${col}" aria-pressed="${col === c.color}" aria-label="Usar esta cor"></button>`).join("")}</div>` : ""}
-    </div>`).join("");
-  openSheet(`<h4>Categorias</h4><p class="sub">Toque no nome para renomear e na cor para trocar. Ao excluir, os itens vão para “Outros”.</p>
-    <div class="catrows" id="catRows">${rows()}</div>
-    <form class="newcat" data-form="newcat"><input id="newCatName" placeholder="Nova categoria (ex.: Farmácia)" autocomplete="off" aria-label="Nova categoria" maxlength="40"><button class="btn primary" type="submit">Criar</button></form>
-    <div class="menu"><button data-act="places">Locais de compra</button><button data-act="restore">${ICON_UNDO}Restaurar categorias padrão</button>${Object.keys(S.learned||{}).length ? `<button data-act="forget">${ICON_SPARK}Esquecer o que o app aprendeu (${Object.keys(S.learned).length})</button>` : ""}</div>`, body => {
+    </div>`;
+  }).join("");
+  const nLearned = () => Object.keys(S.learned || {}).length;
+  const moreRows = () => `<div class="grp"><button class="row" data-act="places">${ICON_HOUSE}<span class="rl">Locais de compra</span></button><button class="row" data-act="restore">${ICON_UNDO}<span class="rl">Restaurar categorias padrão</span></button>${nLearned() ? `<button class="row" data-act="forget">${ICON_SPARK}<span class="rl">Esquecer o que o app aprendeu (${nLearned()})</span></button>` : ""}</div>`;
+  openSheet(`<div class="cm-head"><h4>Categorias</h4><button class="btn" data-act="edit" aria-pressed="false">Editar</button></div>
+    <p class="sub" style="margin-bottom:10px">Toque no nome para renomear e na cor para trocar.</p>
+    <div class="sh-scroll"><div class="catrows" id="catRows">${rows()}</div>
+      <button class="more-toggle" data-act="more" aria-expanded="false"><span>Mais opções</span>${ICON_CHEV}</button>
+      <div class="more-box" id="moreBox" hidden></div></div>
+    <div class="cm-foot"><form class="newcat" data-form="newcat"><input id="newCatName" placeholder="Nova categoria (ex.: Farmácia)" autocomplete="off" aria-label="Nova categoria" maxlength="40"><button class="btn primary" type="submit">Criar</button></form></div>`, body => {
     const box = body.querySelector("#catRows");
-    const redraw = () => { box.innerHTML = rows(); };
+    const redraw = () => { if (box.isConnected) box.innerHTML = rows(); };
+    const redrawMore = () => { const m = body.querySelector("#moreBox"); if (m && m.isConnected) m.innerHTML = moreRows(); };
     body.onclick = e => {
       const w = e.target.closest(".catrow-wrap");
       const b = e.target.closest("[data-act],[data-color]"); if (!b) return;
       if (b.dataset.color && w) { patchCat(w.dataset.cat, {color:b.dataset.color}); openPal = null; redraw(); return; }
       const a = b.dataset.act;
-      if (a === "pal" && w) { openPal = openPal === w.dataset.cat ? null : w.dataset.cat; redraw(); }
-      else if (a === "del" && w) {
-        if (!b.classList.contains("arm")) {
-          b.classList.add("arm"); b.textContent = "Excluir?";
-          setTimeout(() => { if (b.isConnected) { b.classList.remove("arm"); b.innerHTML = ICON_TRASH; } }, 3000);
-        } else {
-          const cid = w.dataset.cat, name = catById(cid).name;
-          const n = deleteCat(cid); redraw();
-          toast(n ? `“${name}” excluída. ${n} ${n === 1 ? "item foi" : "itens foram"} para Outros` : `“${name}” excluída`);
-        }
+      if (a === "edit") { editMode = !editMode; confirmId = null; b.setAttribute("aria-pressed", String(editMode)); b.textContent = editMode ? "Pronto" : "Editar"; redraw(); }
+      else if (a === "pal" && w) { openPal = openPal === w.dataset.cat ? null : w.dataset.cat; redraw(); }
+      else if (a === "del" && w) { confirmId = w.dataset.cat; redraw(); }
+      else if (a === "del-no") { confirmId = null; redraw(); }
+      else if (a === "del-yes" && w) {
+        const cid = w.dataset.cat, name = catById(cid).name;
+        /* foto do estado antes de excluir, para o desfazer devolver a categoria e os itens */
+        const snap = {cc: S.customCats, ov: S.catOverrides, moved: [...S.items].filter(([, it]) => it.cat === cid).map(([iid]) => iid)};
+        const n = deleteCat(cid); confirmId = null; redraw();
+        toast(n ? `“${name}” excluída. ${n} ${n === 1 ? "item foi" : "itens foram"} para Outros` : `“${name}” excluída`, () => {
+          S.customCats = snap.cc; S.catOverrides = snap.ov;
+          snap.moved.forEach(iid => { if (S.items.has(iid)) write("items", iid, {cat: cid}, "patch"); });
+          writeCats(); redraw();
+        });
       }
+      else if (a === "more") { moreOpen = !moreOpen; b.setAttribute("aria-expanded", String(moreOpen)); const m = body.querySelector("#moreBox"); m.hidden = !moreOpen; if (moreOpen) { redrawMore(); setTimeout(() => m.scrollIntoView({block: "nearest", behavior: "smooth"}), 30); } }
       else if (a === "places") { closeSheet(); setTimeout(openLocais, 240); }
       else if (a === "restore") { S.catOverrides = {}; writeCats(); redraw(); toast("Categorias padrão restauradas"); }
-      else if (a === "forget") { S.learned = {}; writeLearned(); b.remove(); toast("Categorias aprendidas apagadas"); }
+      else if (a === "forget") { S.learned = {}; writeLearned(); redrawMore(); toast("Categorias aprendidas apagadas"); }
     };
     body.onchange = e => {
       if (!e.target.classList.contains("catname")) return;
@@ -230,5 +246,5 @@ export function openCatManager(focusId){
       if (id) { redraw(); toast("Categoria criada"); }
     };
     if (focusId) { const inp = box.querySelector(`[data-cat="${CSS.escape(focusId)}"] .catname`); if (inp) setTimeout(() => { inp.focus(); inp.select(); }, 260); }
-  });
+  }, {tall: true});
 }

@@ -3,10 +3,10 @@ import Sortable from "sortablejs";
 import { norm, guessCat, splitItems, learn, allCats, catById, sortedCatsFor, addCustomCat, openCatManager } from "./categorias.js";
 import { S, shopping, myCreated, pendingBlank, expanded, hold, holdTimers, drafts, draftTimers, $, esc } from "./estado.js";
 import { itemsOf, newId, write } from "./dados.js";
-import { openHelp, envName, openProfile } from "./ambientes.js";
-import { askPrice, hidePriceBar, valoresOn, itemValor, catValor, listaValor, priceSheetHTML, bindPriceSheet } from "./precos.js";
+import { openHelp, envName, openProfile, openAmbientes } from "./ambientes.js";
+import { valoresOn, itemValor, catValor, listaValor, priceSheetHTML, bindPriceSheet } from "./precos.js";
 import { sgHidden, currentSuggestions, logTrip, suggestHTML, lsSet, showFbPrompt, openFeedback } from "./sugestoes.js";
-import { ICON_GRIP, ICON_CHECK, ICON_MORE, ICON_TRASH, ICON_UNDO, ICON_BROOM, ICON_COPY, ICON_CHECKBIG, ICON_PEOPLE, ICON_TAG, ICON_PLUS, ICON_CHECK_XL, ICON_CHEV, ICON_SPARK, ICON_BASKET, ICON_RECEIPT } from "./icones.js";
+import { ICON_GRIP, ICON_CHECK, ICON_MORE, ICON_TRASH, ICON_UNDO, ICON_BROOM, ICON_COPY, ICON_CHECKBIG, ICON_PEOPLE, ICON_TAG, ICON_PLUS, ICON_CHECK_XL, ICON_CHEV, ICON_SPARK, ICON_BASKET, ICON_RECEIPT, ICON_SORT, ICON_BACK } from "./icones.js";
 import { openImportar } from "./nfce.js";
 
 /* ---------------- render ---------------- */
@@ -22,10 +22,12 @@ export function render(){
       if (im.getAttribute("src") !== src) im.src = src;
     } else if (im) im.remove(); }
   $("avatarInitial").textContent = ini || (envName(S.env)||"·").trim().charAt(0).toUpperCase() || "·";
+  $("envChipName").textContent = envName(S.env) || "Ambiente";
   $("homeView").hidden = S.view !== "home";
   $("listView").hidden = S.view !== "list";
+  $("listView").classList.toggle("reorder", !!S.reorder);
   $("fab").hidden = S.view !== "home" || S.readonly || S.mode === "loading";
-  $("addbar").hidden = S.view !== "list" || S.readonly;
+  $("addbar").hidden = S.view !== "list" || S.readonly || !!S.reorder;
   if (S.view === "home") renderHome(); else renderList();
 }
 
@@ -37,7 +39,6 @@ function setHTML(el, html){ if (el._html !== html) { el.innerHTML = html; el._ht
 export function renderHome(){
   const body = $("homeBody");
   if (S.mode === "remote" && S.bootDone && !S.env) {
-    $("homeSub").textContent = "Nenhum ambiente ainda";
     setHTML(body, `<div class="empty"><div class="basket">${ICON_BASKET}</div><strong>Entre num ambiente</strong>Peça o link de convite para quem criou a lista.<div style="margin-top:16px"><button class="btn primary" data-act="join-code">Colar link de convite</button></div></div>`);
     return;
   }
@@ -54,24 +55,15 @@ export function renderHome(){
   };
   const active = all.filter(l => !l.done && match(l));
   const done = all.filter(l => l.done && match(l));
-  const sub = $("homeSub");
-  const openCount = all.filter(l=>!l.done).length;
-  sub.textContent = envName(S.env) + " · " + (S.mode === "local" ? "modo local, só neste aparelho" :
-    openCount ? (openCount === 1 ? "1 lista aberta" : openCount + " listas abertas") : "nenhuma lista aberta");
 
   if (!all.length) {
     setHTML(body, `<div class="empty"><div class="basket">${ICON_BASKET}</div><strong>Nenhuma lista ainda</strong>${S.readonly ? "Quando alguém criar uma lista, ela aparece aqui." : "Toque no + para criar a primeira lista de compras."}<div style="margin-top:18px"><button class="btn" data-act="join-code">Recebeu um convite? Cole o link</button></div></div>`);
     return;
   }
-  let html = "";
-  if (!active.length && !done.length) html += `<div class="empty">Nada encontrado para “${esc(S.search)}”.</div>`;
-  html += `<div class="lists">${active.map(cardHTML).join("")}</div>`;
-  if (done.length) {
-    html += `<button class="sect-toggle" data-act="toggle-done" aria-expanded="${S.showDone}">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
-      Concluídas · ${done.length}</button>`;
-    if (S.showDone) html += `<div class="lists">${done.map(cardHTML).join("")}</div>`;
-  }
+  const tabDone = !!S.showDone, shown = tabDone ? done : active;
+  let html = `<div class="pillrow"><button class="fpill" data-act="tab-active" aria-pressed="${!tabDone}">Ativas · ${active.length}</button><button class="fpill" data-act="tab-done" aria-pressed="${tabDone}">Concluídas · ${done.length}</button><button class="iconbtn" data-act="cats" aria-label="Categorias">${ICON_TAG}</button></div>`;
+  if (!shown.length) html += `<div class="empty">${q ? `Nada encontrado para “${esc(S.search)}”.` : tabDone ? "Nenhuma lista concluída ainda." : "Nenhuma lista ativa. Toque no + para criar uma."}</div>`;
+  else html += `<div class="lists">${shown.map(cardHTML).join("")}</div>`;
   setHTML(body, html);
 }
 export function cardHTML(l){
@@ -79,13 +71,13 @@ export function cardHTML(l){
   const total = its.length, checked = its.filter(i=>i.checked).length;
   const open = its.filter(i=>!i.checked).sort((a,b)=>a.order-b.order);
   const prev = total === 0 ? "Lista vazia" : open.length ? open.slice(0,8).map(i=>i.text||"…").join(" · ") : "Tudo no carrinho";
-  const cats = [...new Set(open.map(i=>i.cat))].slice(0,8).map(c=>`<i style="--c:${catById(c).color}" title="${esc(catById(c).name)}"></i>`).join("");
   const pct = total ? Math.round(checked/total*100) : 0;
   const lv = valoresOn() ? listaValor(its) : {text: ""};
-  return `<article class="lcard ${l.done?"done":""}" data-open="${esc(l.id)}" tabindex="0" role="button" aria-label="Abrir ${esc(l.title||"lista sem nome")}">
-    <div class="lbody" style="grid-column:1/3"><h2>${esc(l.title || "Lista sem nome")}</h2><p class="prev">${esc(prev)}</p>${cats?`<div class="cats">${cats}</div>`:""}</div>
-    <div class="lside"><span class="count">${checked}/${total}</span>${lv.text ? `<span class="lval">${esc(lv.text)}</span>` : ""}</div>
-    <i class="bar" style="width:${l.done?100:pct}%"></i>
+  return `<article class="lcard ${l.done?"done":"active"}" data-open="${esc(l.id)}" tabindex="0" role="button" aria-label="Abrir ${esc(l.title||"lista sem nome")}">
+    <div class="ltop"><h2>${esc(l.title || "Lista sem nome")}</h2>${lv.text ? `<span class="lval">${esc(lv.text)}</span>` : ""}</div>
+    <p class="prev">${esc(prev)}</p>
+    <div class="bar6"><i style="width:${l.done?100:pct}%"></i></div>
+    <div class="lfoot"><span>${checked} de ${total} ${total === 1 ? "item" : "itens"}</span><span>${l.done?100:pct}%</span></div>
   </article>`;
 }
 
@@ -114,15 +106,18 @@ export function renderList(){
     for (const [id, li] of liMap) if (li.isConnected) { const r = li.getBoundingClientRect(); const sr = li.closest(".cat"); if (r.height && sr) before.set(id, {sec: sr.dataset.cat, off: r.top - sr.getBoundingClientRect().top}); }
   }
   $("pbar").hidden = !its.length;
-  const lt = $("listTotal"), lv = valoresOn() ? listaValor(its) : {text: "", falta: 0};
-  lt.hidden = !lv.text;
-  lt.textContent = lv.text; lt.title = lv.falta ? `Estimativa · ${lv.falta} ${lv.falta === 1 ? "item" : "itens"} sem preço` : "Estimativa da lista";
+  $("lpDone").textContent = `${cart.length} de ${its.length} ${its.length === 1 ? "item" : "itens"}`;
+  const lv = valoresOn() ? listaValor(its) : {text: "", falta: 0};
+  /* à direita do progresso: o valor total da lista (vazio sem valores) */
+  $("lpLeft").textContent = lv.text;
+  $("lpLeft").title = lv.text ? (lv.falta ? `Estimativa · ${lv.falta} ${lv.falta === 1 ? "item" : "itens"} sem preço` : "Estimativa da lista") : "";
   $("pbarFill").style.width = (its.length ? cart.length/its.length*100 : 0) + "%";
 
   // banner
   let banner = "";
   if (S.mode === "local") banner += `<div class="note">Modo local: esta lista está salva só neste aparelho e não sincroniza.</div>`;
   if (S.readonly) banner += `<div class="note">Você pode ver esta lista, mas não editar.</div>`;
+  if (S.reorder && !S.readonly) banner += `<div class="reorder-bar"><span>Arraste pelas alças para reordenar itens e categorias.</span><button class="btn primary" data-act="reorder-off">Pronto</button></div>`;
   /* lista toda riscada: sem tela nem aviso fixo; a lista fica como está (com os itens riscados) e só um toast avisa */
   if (list.done && open.length) banner += `<div class="banner"><p><strong>Lista concluída</strong>Você ainda pode editar, ou reabrir para usar de novo.</p>${S.readonly?"":'<button class="btn primary" data-act="reuse">Usar de novo</button>'}</div>`;
   const bEl = $("listBanner"); if (bEl._html !== banner) { bEl.innerHTML = banner; bEl._html = banner; }
@@ -159,11 +154,14 @@ export function renderList(){
     sec.querySelector(".sw").style.setProperty("--c", cat.color);
     const arr = sortSec(byCat.get(cid));
     sec.querySelector(".cv").textContent = valoresOn() ? catValor(arr) : "";
+    sec.querySelector(".cn").textContent = `${arr.filter(i => eff(i)).length}/${arr.length}`;
     const allDone = arr.every(i => eff(i));
     sec.classList.toggle("all-done", allDone);
     sec.querySelector(".cat-check").setAttribute("aria-checked", allDone ? "true" : "false");
     if (!allDone) expanded.delete(cid);
-    sec.classList.toggle("collapsed", allDone && !expanded.has(cid));
+    const isCollapsed = userCollapsed.has(cid) || (allDone && !expanded.has(cid));
+    sec.classList.toggle("collapsed", isCollapsed);
+    sec.querySelector(".cat-name").setAttribute("aria-expanded", String(!isCollapsed));
     sec.classList.toggle("noitems", !arr.length);
     sec.classList.toggle("selected", S.selectedCat === cid && !sec.classList.contains("collapsed"));
     if (wrap.children[idx] !== sec) wrap.insertBefore(sec, wrap.children[idx] || null);
@@ -211,20 +209,30 @@ export function renderList(){
       }
     });
   }
-  if (catsSortable) catsSortable.option("disabled", S.readonly);
+  if (catsSortable) catsSortable.option("disabled", S.readonly || !S.reorder);
+  for (const sec of secMap.values()) if (sec._sortable) sec._sortable.option("disabled", S.readonly || !S.reorder);
   updateAddChip();
   renderPeers();
 }
 
+/* grupos recolhidos à mão (além dos totalmente riscados, que recolhem sozinhos) */
+export const userCollapsed = new Set();
+export function toggleCollapse(cid){
+  const sec = secMap.get(cid); if (!sec) return;
+  const allDone = sec.classList.contains("all-done");
+  if (sec.classList.contains("collapsed")) { userCollapsed.delete(cid); if (allDone) expanded.add(cid); }
+  else { userCollapsed.add(cid); expanded.delete(cid); }
+  render();
+}
 export function makeSection(cid){
   const sec = document.createElement("section");
   sec.className = "cat"; sec.dataset.cat = cid;
-  sec.innerHTML = `<div class="cat-head"><span class="cat-grip" aria-label="Arrastar categoria">${ICON_GRIP}</span><i class="sw"></i><button class="cat-name" aria-label="Editar categoria"><h3></h3><span class="cv"></span></button><button class="cat-toggle" aria-label="Mostrar ou esconder itens riscados">${ICON_CHEV}</button><button class="cat-check" role="checkbox" aria-checked="false" aria-label="Riscar todos os itens da categoria">${ICON_CHECK}</button></div><ul class="items" data-cat="${esc(cid)}"></ul><button class="add-in-cat">${ICON_PLUS}<span>Adicionar item</span></button>`;
+  sec.innerHTML = `<div class="cat-head"><span class="cat-grip" aria-label="Arrastar categoria">${ICON_GRIP}</span><button class="cat-name" aria-expanded="true" aria-label="Recolher ou abrir o grupo"><i class="sw"></i><h3></h3></button><span class="cv"></span><span class="cn"></span><span class="cat-toggle" aria-hidden="true">${ICON_CHEV}</span><button class="cat-check" role="checkbox" aria-checked="false" aria-label="Riscar todos os itens da categoria">${ICON_CHECK}</button></div><ul class="items" data-cat="${esc(cid)}"></ul><button class="add-in-cat">${ICON_PLUS}<span>Adicionar item</span></button>`;
   const ul = sec.querySelector("ul");
   if (Sortable) {
     sec._sortable = Sortable.create(ul, {
       group: "items", handle: ".grip", animation: 160, ghostClass: "sortable-ghost", fallbackOnBody: true, filter: ".done", preventOnFilter: false,
-      disabled: S.readonly,
+      disabled: S.readonly || !S.reorder,
       onStart(){ S.dragging = true; selectCat(null); },
       onEnd(evt){
         S.dragging = false;
@@ -265,6 +273,7 @@ export function makeLi(id){
   li.className = "item"; li.dataset.id = id;
   li.innerHTML = `<span class="grip" aria-hidden="true">${ICON_GRIP}</span>
     <input class="txt" data-item-id="${esc(id)}" autocomplete="off" enterkeyhint="next" placeholder="Item" aria-label="Nome do item">
+    <span class="fill"></span>
     <span class="pv"></span>
     <span class="tag" hidden><i></i><b></b></span>
     <button class="more" aria-label="Opções do item">${ICON_MORE}</button>
@@ -336,10 +345,11 @@ export function createList(){
 export function selectCat(cid){
   S.selectedCat = cid || null;
   secMap.forEach((sec, id) => sec.classList.toggle("selected", id === S.selectedCat && !sec.classList.contains("collapsed")));
+  updateAddChip();
 }
 export function openList(id, focusTitle){
   selectCat(null);
-  S.view = "list"; S.listId = id; S.addCatManual = false; S.peek = false;
+  S.view = "list"; S.listId = id; S.addCatManual = false; S.peek = false; S.reorder = false; userCollapsed.clear();
   liMap.forEach(li => li.remove()); liMap.clear();
   secMap.forEach(s => { if (s._sortable) s._sortable.destroy(); s.remove(); }); secMap.clear();
   $("titleInput").value = (S.lists.get(id)||{}).title || "";
@@ -355,7 +365,7 @@ export function goHome(){
     const its = itemsOf(id);
     if (!its.length && !(l.title||"").trim()) write("lists", id, null, "del");
   }
-  S.view = "home"; S.listId = null;
+  S.view = "home"; S.listId = null; S.reorder = false;
   try { history.replaceState(null, "", "#"); } catch(e){}
   render(); announce(); window.scrollTo(0,0);
 }
@@ -368,6 +378,7 @@ export function nextOrderInCat(listId, cat){
 export function addItem(text, cat, focusAfter){
   text = (text||"").trim(); if (!text || !S.listId) return;
   const c = cat || guessCat(text) || "outros";
+  userCollapsed.delete(c);
   const id = newId();
   myCreated.add(id);
   write("items", id, {listId:S.listId, text, cat:c, order:nextOrderInCat(S.listId, c), checked:false, checkedAt:0, createdAt:Date.now(), by:S.myId||null}, "set");
@@ -393,7 +404,6 @@ export function toggleItem(id){
   clearTimeout(holdTimers.get(id));
   holdTimers.set(id, setTimeout(() => { hold.delete(id); holdTimers.delete(id); render(); }, 600));
   write("items", id, {checked, checkedAt: checked ? Date.now() : 0}, "patch");
-  if (checked) askPrice(id); else hidePriceBar(id);
   const lid = it.listId, l0 = S.lists.get(lid);
   if (!checked && l0 && l0.done) write("lists", lid, {done:false}, "patch");
   if (checked) setTimeout(() => {
@@ -415,7 +425,6 @@ export function toggleCat(cid){
     clearTimeout(holdTimers.get(id));
     holdTimers.set(id, setTimeout(() => { hold.delete(id); holdTimers.delete(id); render(); }, 600));
     write("items", id, {checked, checkedAt: checked ? Date.now() : 0}, "patch");
-    if (!checked) hidePriceBar(id);
   }
   if (checked) shopping.add(lid);
   const l0 = S.lists.get(lid);
@@ -454,6 +463,16 @@ export function flushTitle(){
   const l = S.lists.get(S.listId); if (!l) return;
   const v = $("titleInput").value;
   if ((l.title||"") !== v) write("lists", S.listId, {title: v}, "patch");
+}
+export function checkAll(){
+  const lid = S.listId, its = itemsOf(lid).filter(i => !i.checked);
+  if (!its.length) return;
+  shopping.add(lid);
+  its.forEach(i => { flushDraft(i.id); write("items", i.id, {checked:true, checkedAt:Date.now()}, "patch"); });
+  setTimeout(() => {
+    const l = S.lists.get(lid), all = itemsOf(lid);
+    if (l && !l.done && all.length && all.every(i => i.checked)) { S.peek = false; logTrip(lid); write("lists", lid, {done:true}, "patch"); toast("Compra finalizada. Tudo riscado!"); }
+  }, 800);
 }
 export function uncheckAll(){
   const its = itemsOf(S.listId).filter(i => i.checked);
@@ -517,6 +536,7 @@ export function updateAddChip(){
   }
   let cid = null;
   if (S.addCatManual && S.addCat) cid = S.addCat;
+  else if (S.selectedCat && secMap.has(S.selectedCat)) { cid = S.selectedCat; S.addCat = null; }
   else {
     cid = historyCat(val);
     S.addCat = cid;
@@ -525,14 +545,15 @@ export function updateAddChip(){
   if (!cid) { label.textContent = "Auto"; return; }
   const c = catById(cid);
   sw.style.setProperty("--c", c.color);
-  label.textContent = c.id === "outros" ? "Sem categoria" : c.name;
+  label.textContent = c.id === "outros" && cid !== S.selectedCat ? "Sem categoria" : c.name;
 }
 /* adiciona vários textos de uma vez (barra de adicionar e voz): categoria escolhida no chip (ensina o app), senão a do histórico, senão "outros" */
 export function addTexts(parts){
   parts = parts.map(t => t.trim()).filter(Boolean); if (!parts.length) return;
   const manual = S.addCatManual && S.addCat ? S.addCat : null;
   if (manual) parts.forEach(t => learn(t, manual));
-  const ids = parts.map(t => addItem(t, manual || historyCat(t) || "outros")).filter(Boolean);
+  const grp = !manual && S.selectedCat && secMap.has(S.selectedCat) ? S.selectedCat : null;   // grupo ativo: vale sem ensinar nada ao app
+  const ids = parts.map(t => addItem(t, manual || grp || historyCat(t) || "outros")).filter(Boolean);
   if (ids.length > 1) toast(`${ids.length} itens adicionados`, () => ids.forEach(id => deleteItem(id, true)));
   S.addCatManual = false; S.addCat = null; updateAddChip();
 }
@@ -546,49 +567,66 @@ export function submitAdd(){
 }
 
 /* ---------------- sheet ---------------- */
-export function openSheet(html, onMount){
+export function openSheet(html, onMount, opts){
   const sb = $("sheetBody"); sb.onclick = sb.onchange = sb.onkeydown = null;
   sb.innerHTML = html;
-  $("scrim").hidden = false; $("sheet").hidden = false;
-  requestAnimationFrame(() => { $("scrim").classList.add("on"); $("sheet").classList.add("on"); });
+  const sh = $("sheet"); sh.classList.toggle("tall", !!(opts && opts.tall)); sh.style.transform = "";
+  $("scrim").hidden = false; sh.hidden = false;
+  requestAnimationFrame(() => { $("scrim").classList.add("on"); sh.classList.add("on"); });
   if (onMount) onMount($("sheetBody"));
 }
 export function closeSheet(){
-  $("scrim").classList.remove("on"); $("sheet").classList.remove("on");
-  setTimeout(() => { $("scrim").hidden = true; $("sheet").hidden = true; $("sheetBody").innerHTML = ""; }, 230);
+  $("scrim").classList.remove("on"); $("sheet").classList.remove("on"); $("sheet").style.transform = "";
+  setTimeout(() => { if ($("sheet").classList.contains("on")) return; $("scrim").hidden = true; $("sheet").hidden = true; $("sheetBody").innerHTML = ""; $("sheet").classList.remove("tall"); }, 230);
 }
-export function catGridHTML(selected){
-  return `<div class="catgrid">${allCats().map(c => `<button class="catopt" data-cat="${esc(c.id)}" aria-pressed="${c.id===selected}"><i class="sw" style="--c:${c.color}"></i><span>${esc(c.name)}</span></button>`).join("")}</div>
-  <form class="newcat" data-form="newcat"><input id="newCatName" placeholder="Nova categoria (ex.: Farmácia)" autocomplete="off" aria-label="Nova categoria"><button class="btn" type="submit">Criar</button></form>`;
+/* cabeçalho de folha: título e, se houver, botão de voltar redondo (data-act="back") */
+export function sheetHead(title, back){
+  return `<div class="sh-head">${back ? `<button class="sh-back" data-act="back" aria-label="Voltar">${ICON_BACK}</button>` : ""}<h4>${title}</h4></div>`;
+}
+/* arrastar a alça para baixo fecha a folha */
+export function bindSheetSwipe(){
+  const sh = $("sheet"), h = $("sheetHandle"); let y0 = null, dy = 0;
+  h.addEventListener("pointerdown", e => { y0 = e.clientY; dy = 0; sh.classList.add("dragging"); try { h.setPointerCapture(e.pointerId); } catch(_){} });
+  h.addEventListener("pointermove", e => { if (y0 == null) return; dy = Math.max(0, e.clientY - y0); sh.style.transform = `translateY(${dy}px)`; });
+  const end = e => { if (y0 == null) return; if (e && e.type === "pointerup") dy = Math.max(dy, e.clientY - y0); y0 = null; sh.classList.remove("dragging"); if (dy > 90) closeSheet(); else sh.style.transform = ""; };
+  h.addEventListener("pointerup", end); h.addEventListener("pointercancel", end);
+}
+/* categorias em pílulas de 40 px (ponto de cor + nome) e campo de nova categoria */
+export function catPillsHTML(selected){
+  return `<div class="pills">${allCats().map(c => `<button class="catpill" data-cat="${esc(c.id)}" aria-pressed="${c.id===selected}"><i class="sw" style="--c:${c.color}"></i><span>${esc(c.name)}</span></button>`).join("")}</div>`;
+}
+export function newCatFormHTML(){
+  return `<form class="newcat" data-form="newcat"><input id="newCatName" placeholder="Nova categoria (ex.: Farmácia)" autocomplete="off" aria-label="Nova categoria"><button class="btn primary" type="submit">Criar</button></form>`;
 }
 export function openItemSheet(id){
   const it = S.items.get(id); if (!it) return;
   flushDraft(id);
-  openSheet(`<h4>${esc(it.text || "Item sem nome")}</h4><p class="sub">Mover para outra categoria</p>${catGridHTML(it.cat)}${priceSheetHTML(it)}
-    <div class="menu"><button data-act="cats">${ICON_TAG}Editar categorias</button><button class="red" data-act="del-item">${ICON_TRASH}Excluir item</button></div>`, body => {
+  openSheet(`<h4>${esc(it.text || "Item sem nome")}</h4><p class="sub">Mover para outra categoria</p><label class="catsearch"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="catQ" type="search" placeholder="Buscar ou criar categoria" autocomplete="off" aria-label="Buscar categoria"></label>${catPillsHTML(it.cat)}<div id="catNew"></div>${priceSheetHTML(it)}
+    <div class="divider"></div><button class="row-solo red" data-act="del-item">${ICON_TRASH}Excluir item</button>`, body => {
     bindPriceSheet(body, it, closeSheet);
+    const q = $("catQ"), moveTo = cid => { const cur = S.items.get(id); if (cid && cur && cur.cat !== cid) { write("items", id, {cat: cid, order: nextOrderInCat(cur.listId, cid)}, "patch"); learn(cur.text, cid); } closeSheet(); };
+    q.oninput = () => {
+      const t = norm(q.value); let n = 0;
+      body.querySelectorAll(".catpill").forEach(b => { const ok = !t || norm(b.textContent).includes(t); b.hidden = !ok; if (ok) n++; });
+      $("catNew").innerHTML = t && !n ? `<button class="catpill newpill" data-newcat="1">+ Criar “${esc(q.value.trim())}”</button>` : "";
+    };
+    q.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); const nb = body.querySelector("[data-newcat]"); if (nb) nb.click(); else { const v = [...body.querySelectorAll(".catpill")].filter(b => !b.hidden); if (v.length === 1) v[0].click(); } } };
     body.onclick = e => {
+      if (e.target.closest("[data-newcat]")) { moveTo(addCustomCat(q.value)); return; }
       const b = e.target.closest("[data-cat]");
       if (b) { const cat = b.dataset.cat; const cur = S.items.get(id); if (cur && cur.cat !== cat) { write("items", id, {cat, order: nextOrderInCat(cur.listId, cat)}, "patch"); learn(cur.text, cat); } closeSheet(); return; }
       if (e.target.closest('[data-act="del-item"]')) { deleteItem(id); closeSheet(); }
-      if (e.target.closest('[data-act="cats"]')) { closeSheet(); setTimeout(() => openCatManager(), 240); }
-    };
-    body.querySelector('[data-form="newcat"]').onsubmit = e => {
-      e.preventDefault(); const cid = addCustomCat($("newCatName").value);
-      const cur = S.items.get(id);
-      if (cid && cur) { write("items", id, {cat:cid, order: nextOrderInCat(cur.listId, cid)}, "patch"); learn(cur.text, cid); }
-      closeSheet();
     };
   });
 }
 export function openAddCatSheet(){
-  openSheet(`<h4>Categoria do próximo item</h4><p class="sub">Vale só para este item. “Outros” é o grupo sem categoria.</p>${catGridHTML(S.addCatManual ? S.addCat : null)}
-    <div class="menu"><button data-act="auto">${ICON_SPARK}Voltar para Auto</button><button data-act="cats">${ICON_TAG}Editar categorias</button></div>`, body => {
+  openSheet(`<h4>Categoria do próximo item</h4><p class="sub">Vale só para este item.</p>
+    <button class="autocard" data-act="auto" aria-pressed="${!S.addCatManual}"><span class="ac-ic">${ICON_SPARK}</span><span class="ac-t"><b>Auto</b><small>Escolhe pela categoria aprendida</small></span><span class="ac-ck">${ICON_CHECK}</span></button>
+    <p class="sect">Ou escolha</p>${catPillsHTML(S.addCatManual ? S.addCat : null)}${newCatFormHTML()}`, body => {
     body.onclick = e => {
       const b = e.target.closest("[data-cat]");
       if (b) { S.addCat = b.dataset.cat; S.addCatManual = true; updateAddChip(); closeSheet(); $("addInput").focus(); return; }
       if (e.target.closest('[data-act="auto"]')) { S.addCatManual = false; updateAddChip(); closeSheet(); $("addInput").focus(); }
-      if (e.target.closest('[data-act="cats"]')) { closeSheet(); setTimeout(() => openCatManager(), 240); }
     };
     body.querySelector('[data-form="newcat"]').onsubmit = e => {
       e.preventDefault(); const cid = addCustomCat($("newCatName").value);
@@ -600,26 +638,23 @@ export function openAddCatSheet(){
 export function openListMenu(){
   const l = S.lists.get(S.listId); if (!l) return;
   if (S.readonly) { openHelp(); return; }
-  openSheet(`<h4>${esc(l.title || "Lista sem nome")}</h4><p class="sub">Arraste pelos pontinhos para reordenar itens e categorias.</p>
-    <div class="menu">
-      <button data-act="uncheck">${ICON_UNDO}Desmarcar todos os itens</button>
-      <button data-act="clear">${ICON_BROOM}Remover itens riscados</button>
-      <button data-act="cats">${ICON_TAG}Editar categorias</button>
-      <button data-act="dup">${ICON_COPY}Duplicar lista</button>
-      ${S.mode === "remote" ? `<button data-act="nfce">${ICON_RECEIPT}Importar nota</button>` : ""}
-      <button data-act="done">${ICON_CHECKBIG}${l.done ? "Reabrir lista" : "Concluir lista"}</button>
-      <button data-act="help">${ICON_PEOPLE}Compartilhar com alguém</button>
-      <button class="red" data-act="del">${ICON_TRASH}Excluir lista</button>
-    </div><div id="confirmBox"></div>`, body => {
+  const row = (act, ic, label) => `<button class="row" data-act="${act}">${ic}<span class="rl">${label}</span></button>`;
+  openSheet(`<h4>${esc(l.title || "Lista sem nome")}</h4>
+    <p class="sect" style="margin-top:14px">Itens</p>
+    <div class="grp">${row("checkall", ICON_CHECKBIG, "Marcar todos os itens")}${row("uncheck", ICON_UNDO, "Desmarcar todos os itens")}${row("clear", ICON_BROOM, "Remover itens riscados")}${row("reorder", ICON_SORT, "Reordenar itens e categorias")}</div>
+    <p class="sect">Lista</p>
+    <div class="grp">${row("cats", ICON_TAG, "Editar categorias")}${row("dup", ICON_COPY, "Duplicar lista")}${S.mode === "remote" ? row("nfce", ICON_RECEIPT, "Importar nota") : ""}${row("help", ICON_PEOPLE, "Compartilhar com alguém")}</div>
+    <button class="row-solo red" data-act="del">Excluir lista</button><div id="confirmBox"></div>`, body => {
     body.onclick = e => {
       const b = e.target.closest("[data-act]"); if (!b) return;
       const a = b.dataset.act;
-      if (a === "uncheck") { uncheckAll(); closeSheet(); }
+      if (a === "checkall") { checkAll(); closeSheet(); }
+      else if (a === "uncheck") { uncheckAll(); closeSheet(); }
       else if (a === "clear") { clearChecked(); closeSheet(); }
+      else if (a === "reorder") { S.reorder = true; selectCat(null); closeSheet(); render(); }
       else if (a === "dup") { closeSheet(); duplicateList(); }
       else if (a === "cats") { closeSheet(); setTimeout(() => openCatManager(), 240); }
       else if (a === "nfce") { closeSheet(); setTimeout(openImportar, 240); }
-      else if (a === "done") { if (!l.done) logTrip(S.listId); write("lists", S.listId, {done: !l.done}, "patch"); closeSheet(); if (!l.done) goHome(); }
       else if (a === "help") { closeSheet(); setTimeout(openHelp, 240); }
       else if (a === "del") {
         $("confirmBox").innerHTML = `<p class="sub" style="margin-top:12px">Excluir “${esc(l.title||"Lista sem nome")}” e todos os itens? Isso vale para todo mundo que usa a lista.</p><div class="confirm"><button class="btn" data-act="cancel">Cancelar</button><button class="btn danger" data-act="del-yes">Excluir</button></div>`;
@@ -706,6 +741,7 @@ function openListCardMenu(id){
 
 export function addBlankInCat(cat){
   if (S.readonly || !S.listId) return;
+  userCollapsed.delete(cat);
   const id = newId();
   myCreated.add(id);
   blankManual.add(id);
@@ -759,16 +795,18 @@ export function bindEvents(){
   /* ---------------- eventos ---------------- */
   $("fab").onclick = createList;
   $("profileBtn").onclick = () => openProfile();
-  $("catsBtn").onclick = () => openCatManager();
+  $("envChip").onclick = () => openAmbientes();
   $("backBtn").onclick = goHome;
   $("menuBtn").onclick = openListMenu;
   $("scrim").onclick = closeSheet;
+  bindSheetSwipe();
   document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("sheet").hidden) closeSheet(); });
   $("searchInput").addEventListener("input", e => { S.search = e.target.value; renderHome(); });
   $("homeBody").addEventListener("click", e => {
     if (e.target.closest('[data-act="join-code"]')) { openProfile("code"); return; }
-    const t = e.target.closest('[data-act="toggle-done"]');
-    if (t) { S.showDone = !S.showDone; renderHome(); return; }
+    if (e.target.closest('[data-act="tab-active"]')) { S.showDone = false; renderHome(); return; }
+    if (e.target.closest('[data-act="tab-done"]')) { S.showDone = true; renderHome(); return; }
+    if (e.target.closest('[data-act="cats"]')) { openCatManager(); return; }
     const c = e.target.closest("[data-open]"); if (c) openList(c.dataset.open);
   });
   $("homeBody").addEventListener("keydown", e => {
@@ -784,6 +822,7 @@ export function bindEvents(){
     if (b.dataset.act === "peek") { S.peek = true; render(); }
     if (b.dataset.act === "hide-items") { S.peek = false; render(); window.scrollTo({top:0, behavior:"smooth"}); }
     if (b.dataset.act === "home") goHome();
+    if (b.dataset.act === "reorder-off") { S.reorder = false; render(); }
     if (b.dataset.act === "fb") openFeedback("compra finalizada");
     if (b.dataset.act === "fb-x") { lsSet("fb-prompt", "dismissed"); render(); }
   });
@@ -808,7 +847,7 @@ export function bindEvents(){
     if (S.view !== "list" || t.target.closest("#addbar, #sheet, #scrim, .toast")) return;
     const sec = t.target.closest(".cat");
     if (!sec) { if (S.selectedCat) selectCat(null); return; }
-    if (S.readonly || t.target.closest(".check, .more, .grip, .cat-grip, .cat-name, .cat-toggle")) return;
+    if (S.readonly || t.target.closest(".check, .more, .grip, .cat-head, .item")) return;
     if (S.selectedCat !== sec.dataset.cat) selectCat(sec.dataset.cat);
   });
   /* o ⋮ aparece só com o item em edição: sem isto o campo perde o foco antes do clique e o botão some */
@@ -820,14 +859,14 @@ export function bindEvents(){
   listView.addEventListener("click", e => {
     const cc = e.target.closest(".cat-check"); if (cc) { toggleCat(cc.closest(".cat").dataset.cat); return; }
     const ck = e.target.closest(".check"); if (ck) { toggleItem(ck.closest(".item").dataset.id); return; }
+    const row = e.target.closest(".item"); if (row && !S.readonly && !e.target.closest(".txt, .more, .grip, .check")) { try { document.activeElement.blur(); } catch(_){} openItemSheet(row.dataset.id); return; }
     const mo = e.target.closest(".more"); if (mo) { openItemSheet(mo.closest(".item").dataset.id); return; }
     const sa = e.target.closest("[data-sg]"); if (sa) { const sg = currentSuggestions.find(x => x.key === sa.dataset.sg); if (sg) addItem(sg.text, sg.cat); return; }
     const sx = e.target.closest("[data-sg-x]"); if (sx) { const l = S.lists.get(S.listId); if (l) write("lists", S.listId, {dismissed: [...new Set([...(l.dismissed||[]), sx.dataset.sgX])]}, "patch"); return; }
     if (e.target.closest('[data-act="sg-all"]')) { const list = currentSuggestions.slice(); list.forEach(sg => addItem(sg.text, sg.cat)); toast(list.length === 1 ? "1 item adicionado" : list.length + " itens adicionados"); return; }
     if (e.target.closest('[data-act="sg-hide"]')) { sgHidden.add(S.listId); render(); return; }
-    const tg = e.target.closest(".cat-toggle"); if (tg) { const cid = tg.closest(".cat").dataset.cat; if (expanded.has(cid)) expanded.delete(cid); else expanded.add(cid); render(); return; }
     const ab = e.target.closest(".add-in-cat"); if (ab) { addBlankInCat(ab.closest(".cat").dataset.cat); return; }
-    const cn = e.target.closest(".cat-name"); if (cn && !S.readonly) { openCatManager(cn.closest(".cat").dataset.cat); return; }
+    const hd = e.target.closest(".cat-head"); if (hd && !e.target.closest(".cat-grip")) { toggleCollapse(hd.closest(".cat").dataset.cat); return; }
     if (e.target.closest('[data-act="focus-add"]')) { $("addInput").focus(); return; }
   });
   listView.addEventListener("input", e => { if (e.target.classList.contains("txt")) setDraft(e.target.dataset.itemId, e.target.value); });

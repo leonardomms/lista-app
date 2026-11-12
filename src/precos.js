@@ -54,41 +54,12 @@ function salvar(it, v){
   return true;
 }
 
-/* ---- faixa ao riscar: já vem com o último preço; "OK" confirma em um toque, ignorar não pede nada ---- */
-let bar = null, barT = null, barItem = null;
-export function hidePriceBar(id){
-  if (id && barItem !== id) return;
-  clearTimeout(barT); barItem = null;
-  if (bar) bar.classList.remove("on");
-}
-export function askPrice(id){
-  const it = S.items.get(id); if (!it || S.readonly) return;
-  const key = keyOf(it.text); if (!key) return;
-  const last = lastPrice(key, placeFor(it.cat).def);
-  if (!bar) {
-    bar = document.createElement("div"); bar.className = "pricebar"; bar.setAttribute("role", "group");
-    $("toast").after(bar);
-  }
-  barItem = id;
-  bar.innerHTML = `<span class="pb-t">${esc(it.text)}</span><input inputmode="decimal" autocomplete="off" placeholder="R$ preço" aria-label="Preço de ${esc(it.text)}" value="${last ? String(last.price.toFixed(2)).replace(".", ",") : ""}"><button class="pb-ok" aria-label="Salvar preço">OK</button><button class="pb-x" aria-label="Ignorar">×</button>`;
-  const inp = bar.querySelector("input");
-  const arm = ms => { clearTimeout(barT); barT = setTimeout(() => hidePriceBar(), ms); };
-  inp.onfocus = () => clearTimeout(barT);
-  inp.oninput = () => clearTimeout(barT);
-  inp.onblur = () => arm(4000);
-  inp.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); bar.querySelector(".pb-ok").click(); } };
-  bar.querySelector(".pb-ok").onclick = () => { const cur = S.items.get(id); if (cur && inp.value.trim()) salvar(cur, inp.value); hidePriceBar(); };
-  bar.querySelector(".pb-x").onclick = () => hidePriceBar();
-  bar.classList.add("on"); arm(6000);
-}
-
 /* ---- folha do item: definir o preço à mão (vale mais que o das notas, pois é o registro mais novo), corrigir ou apagar o último ---- */
 export function priceSheetHTML(it){
   const key = keyOf(it.text); if (!key || S.readonly) return "";
   const last = pricesOf(key)[0];
   const pl = last && placeById(last.placeId);
-  return `<form class="priceedit" data-form="price"><span class="pe-l">${last ? "Preço" + (pl ? " · " + esc(pl.name) : "") : "Definir preço"}</span>
-    <input inputmode="decimal" autocomplete="off" placeholder="R$" aria-label="Preço" value="${last ? last.price.toFixed(2).replace(".", ",") : ""}"><button class="btn" type="submit">Salvar</button>${last ? `<button class="btn ghost" type="button" data-act="del-price">Apagar</button>` : ""}</form>`;
+  return `<p class="sect">Preço</p><form class="priceedit" data-form="price"><label class="pricefield"><span>R$</span><input inputmode="decimal" autocomplete="off" placeholder="0,00" aria-label="Preço em reais (aceita 3,39 ou 3.39)" value="${last ? last.price.toFixed(2).replace(".", ",") : ""}"></label><button class="btn primary" type="submit">Salvar</button>${last ? `<button class="btn ghost" type="button" data-act="del-price">Apagar</button>` : ""}</form>${pl ? `<p class="price-hint">${esc(pl.name)}</p>` : ""}`;
 }
 export function bindPriceSheet(body, it, close){
   const f = body.querySelector('[data-form="price"]'); if (!f) return;

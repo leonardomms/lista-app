@@ -5,7 +5,7 @@ import { sb, diag } from "./data.js";
 import { $ } from "./estado.js";
 import { limpar } from "./cache.js";
 import { Capacitor } from "@capacitor/core";
-import { ICON_BASKET } from "./icones.js";
+import { ICON_GOOGLE_LOGO } from "./icones.js";
 
 const WEB_CLIENT_ID = (import.meta.env.VITE_GOOGLE_WEB_CLIENT_ID || "").trim();
 const hex = buf => [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("");
@@ -47,9 +47,9 @@ const msgErro = e => {
 export function showLogin(){
   const el = document.createElement("div");
   el.className = "login";
-  el.innerHTML = `<div class="empty"><div class="basket">${ICON_BASKET}</div><strong>Lista da Feira</strong>Entre para criar e dividir suas listas de compras.
-    <div style="margin-top:22px"><button class="btn primary" id="loginGoogle">Entrar com Google</button></div>
-    <p class="login-err" id="loginErr" role="alert" hidden></p></div>`;
+  el.innerHTML = `<div class="login-logo">${ICON_GOOGLE_LOGO}</div><h1>Lista da Feira</h1><p class="login-sub">Entre para criar e dividir suas listas de compras.</p>
+    <p class="login-err" id="loginErr" role="alert" hidden></p>
+    <div class="login-cta"><button class="btn primary lg" id="loginGoogle">Entrar com Google</button></div>`;
   document.body.appendChild(el);
   const btn = $("loginGoogle"), err = $("loginErr");
   btn.onclick = async () => {

@@ -5,13 +5,13 @@ import * as C from "./cache.js";
 import { isNetErr, redeCaiu, redeOk } from "./rede.js";
 import * as D from "./data.js";
 import { sair } from "./login.js";
-import { render, liMap, secMap, announce, openList, flushAll, updateAddChip, openSheet, closeSheet, watchChange, toast, setupRoom, renderPeers } from "./ui.js";
+import { render, liMap, secMap, announce, openList, flushAll, updateAddChip, openSheet, closeSheet, sheetHead, watchChange, toast, setupRoom, renderPeers } from "./ui.js";
 import { sgHidden, canFeedback, openFeedback, openInbox } from "./sugestoes.js";
 import { openImportar } from "./nfce.js";
-import { openNotas } from "./notas.js";
+import { openNotas, contarNotas } from "./notas.js";
 import { valoresOn, setValoresOn } from "./precos.js";
 import { versaoTexto, carregarVersao, otaLinha } from "./versao.js";
-import { ICON_COPY, ICON_PEOPLE, ICON_TEAM, ICON_WA, ICON_MAIL, ICON_CHAT, ICON_INBOX, ICON_BACK, ICON_PENCIL_L, ICON_PLUS_L, ICON_KEY, ICON_EXIT } from "./icones.js";
+import { ICON_COPY, ICON_PEOPLE, ICON_TEAM, ICON_WA, ICON_MAIL, ICON_CHAT, ICON_INBOX, ICON_BACK, ICON_PENCIL_L, ICON_PLUS_L, ICON_KEY, ICON_EXIT, ICON_HOUSE, ICON_CHEV_R, ICON_CHECK_L, ICON_RECEIPT } from "./icones.js";
 
 export function openHelp(){
   if (!S.env) return;
@@ -25,17 +25,16 @@ export function openHelp(){
   const mail = "mailto:?subject=" + encodeURIComponent(`Convite: lista de compras “${name}”`) + "&body=" + encodeURIComponent(msg);
   openSheet(`<div class="help"><h4>Convidar para “${esc(name)}”</h4>
     <p class="sub">Quem abrir o link entra direto neste ambiente e pode ver e editar as listas dele.</p>
+    <div class="codefield"><input id="inviteLink" readonly value="${esc(link)}" aria-label="Link do convite"><button data-act="copy" aria-label="Copiar convite">${ICON_COPY}</button></div>
     <div class="share-row">
-      <a class="share-btn wa" href="${esc(wa)}" target="_blank" rel="noopener">${ICON_WA}WhatsApp</a>
+      <a class="share-btn" href="${esc(wa)}" target="_blank" rel="noopener">${ICON_WA}WhatsApp</a>
       <a class="share-btn" href="${esc(mail)}" target="_blank" rel="noopener">${ICON_MAIL}E-mail</a>
-      <button class="share-btn" data-act="copy">${ICON_COPY}Copiar convite</button>
     </div>
-    <input id="inviteLink" class="invite-text" readonly value="${esc(link)}" aria-label="Link do convite">
-    <p class="muted" style="margin-top:12px">Se o e-mail não abrir, use Copiar convite e cole onde quiser.</p>
-    ${S.mode === "remote" ? "" : '<p class="muted"><b>É a primeira vez da pessoa no app?</b> Antes, dê acesso a ela no botão Compartilhar do Claude: convite pelo e-mail com permissão de Editor. Sem isso, o link não abre para ela.</p>'}
-    <div class="confirm"><button class="btn" data-act="close">Fechar</button></div></div>`, body => {
+    <button class="btn primary lg" data-act="copy">Copiar convite</button>
+    <p class="hint">Se o e-mail não abrir, use Copiar convite e cole onde quiser.</p>
+    ${S.mode === "remote" ? "" : '<p class="hint"><b>É a primeira vez da pessoa no app?</b> Antes, dê acesso a ela no botão Compartilhar do Claude: convite pelo e-mail com permissão de Editor. Sem isso, o link não abre para ela.</p>'}
+    </div>`, body => {
     body.onclick = e => {
-      if (e.target.closest('[data-act="close"]')) { closeSheet(); return; }
       if (e.target.closest('[data-act="copy"]')) {
         const inp = $("inviteLink");
         const fallback = () => { inp.focus(); inp.select(); toast("Link selecionado. Copie e envie para a pessoa."); };
@@ -307,9 +306,9 @@ export function openMembers(){
       return `<div class="mrow"><span class="av-sm" style="--c:var(--faint)">${esc(initials(nm))}</span><div class="minfo"><b>${esc(nm)}</b><span><span class="chip ghost">não entra pelo link</span></span></div><div class="macts"><button class="mini" data-mact="readmit" data-uid="${esc(id)}">Readmitir</button></div></div>`;
     }).join("") : "";
   };
-  openSheet(`<h4 class="mem-title">Membros de “${esc(envName(S.env))}”${!S.readonly && S.env && admin ? `<button class="pen" data-act="rename" aria-label="Renomear este ambiente">${ICON_PENCIL_L}</button>` : ""}</h4><p class="sub">${admin ? "Como administrador, você pode tornar alguém admin ou remover a pessoa do ambiente." : "Só administradores podem gerenciar membros."}</p>
+  openSheet(`<div class="sh-head"><button class="sh-back" data-act="back" aria-label="Voltar">${ICON_BACK}</button><h4 class="mem-title">Membros de “${esc(envName(S.env))}”${!S.readonly && S.env && admin ? `<button class="pen" data-act="rename" aria-label="Renomear este ambiente">${ICON_PENCIL_L}</button>` : ""}</h4></div><p class="sub">${admin ? "Como administrador, você pode tornar alguém admin ou remover a pessoa do ambiente." : "Só administradores podem gerenciar membros."}</p>
     <div id="mList" class="mlist"></div><div id="mRemoved"></div>
-    <div class="menu" style="margin-top:12px"><button data-act="invite">${ICON_PEOPLE}Convidar alguém</button><button data-act="back">${ICON_BACK}Voltar</button></div>`, body => {
+    <div class="menu" style="margin-top:12px"><button data-act="invite">${ICON_PEOPLE}Convidar alguém</button></div>`, body => {
     S._drawMembers = draw; draw();
     const ids = [...(S.members || new Map()).keys()].filter(id => !S.profiles[id]);
     if (ids.length && S.userApi && S.userApi.profiles) S.userApi.profiles(ids).then(ps => { Object.assign(S.profiles, ps || {}); if ($("mList")) draw(); }).catch(()=>{});
@@ -326,31 +325,63 @@ export function openMembers(){
       }
       if (e.target.closest('[data-act="invite"]')) { closeSheet(); setTimeout(openHelp, 240); }
       if (e.target.closest('[data-act="rename"]')) { openProfile("rename"); return; }
-      if (e.target.closest('[data-act="back"]')) openProfile();
+      if (e.target.closest('[data-act="back"]')) voltarPara();
     };
   });
 }
 
 /* ---------------- perfil ---------------- */
+/* para onde o "voltar" de Novo ambiente leva: Ambientes ou Conta, conforme quem abriu */
+let voltarPara = () => openProfile();
+const memTexto = () => { const n = S.mode === "remote" ? activeMembers().length : 1; return n === 1 ? "1 membro" : n + " membros"; };
+
+export function openAmbientes(){
+  voltarPara = () => openAmbientes();
+  const cur = S.env, multi = P.envs.length > 1;
+  const rows = P.envs.map(e => {
+    const on = e.id === cur;
+    return `<button class="envrow" data-env="${esc(e.id)}" aria-current="${on}"><span class="eh">${ICON_HOUSE}</span><span class="et"><b>${esc(envName(e.id))}</b>${on ? `<small>${memTexto()}</small>` : ""}</span>${on ? `<span class="ck" style="color:var(--accent)">${ICON_CHECK_L}</span>` : ""}</button>`;
+  }).join("");
+  const row = (act, ic, label) => `<button class="row" data-act="${act}">${ic}<span class="rl">${label}</span></button>`;
+  openSheet(`${sheetHead("Ambientes")}${rows || '<p class="sub">Você ainda não está em nenhum ambiente.</p>'}
+    <p class="sect">Ações</p>
+    <div class="grp">${S.readonly || !cur ? "" : row("invite", ICON_PEOPLE, `Convidar para “${esc(envName(cur))}”`)}${row("newchoice", ICON_PLUS_L, "Novo ambiente")}${S.mode === "remote" && cur ? row("members", ICON_TEAM, "Membros e administração") : ""}</div>
+    ${multi && cur ? `<button class="row-solo red" data-act="leave">Sair de “${esc(envName(cur))}”</button>` : ""}<div id="leaveBox"></div>`, body => {
+    body.onclick = e => {
+      const r = e.target.closest("[data-env]");
+      if (r) { if (r.dataset.env !== S.env) { switchEnv(r.dataset.env); toast(`Agora em “${envName(r.dataset.env)}”`); } closeSheet(); return; }
+      const b = e.target.closest("[data-act]"); if (!b) return;
+      const a = b.dataset.act;
+      if (a === "invite") { closeSheet(); setTimeout(openHelp, 240); }
+      else if (a === "newchoice") openProfile("newchoice");
+      else if (a === "members") openMembers();
+      else if (a === "leave") $("leaveBox").innerHTML = `<p class="sub" style="margin-top:12px">Sair de “${esc(envName(S.env))}”? As listas continuam lá para quem participa. Para voltar, você vai precisar do código.</p><div class="confirm"><button class="btn" data-act="cancel">Cancelar</button><button class="btn danger" data-act="leave-yes">Sair</button></div>`;
+      else if (a === "cancel") $("leaveBox").innerHTML = "";
+      else if (a === "leave-yes") { const nm = envName(S.env); leaveEnv(S.env); closeSheet(); toast(`Você saiu de “${nm}”`); }
+    };
+  });
+}
+
 export function openProfile(view){
   const cur = S.env;
   if (view === "newchoice") {
-    openSheet(`<h4>Novo ambiente</h4><div class="menu plain" style="margin-top:8px">${S.readonly ? "" : '<button data-act="new">Criar novo</button>'}<button data-act="code">Entrar com código de convite</button><button class="quiet" data-act="back">Voltar</button></div>`, body => {
-      body.onclick = e => { const b = e.target.closest("[data-act]"); if (!b) return; if (b.dataset.act === "back") openProfile(); else openProfile(b.dataset.act); };
+    openSheet(`${sheetHead("Novo ambiente", true)}
+      ${S.readonly ? "" : `<button class="opt-card" data-act="new">${ICON_PLUS_L}<span class="rl">Criar novo<small>Listas, categorias e sugestões próprias</small></span></button>`}
+      <button class="opt-card" data-act="code">${ICON_KEY}<span class="rl">Entrar com código de convite<small>Cole o link ou o código que você recebeu</small></span></button>`, body => {
+      body.onclick = e => { const b = e.target.closest("[data-act]"); if (!b) return; if (b.dataset.act === "back") voltarPara(); else openProfile(b.dataset.act); };
     });
     return;
   }
   if (view === "rename" || view === "new" || view === "code") {
     const cfg = {
       rename: {t:"Renomear ambiente", sub:"", ph:"Ex.: Casa da mãe", v:envName(cur), btn:"Salvar"},
-      new: {t:"Novo ambiente", sub:"Cada ambiente tem listas, categorias e sugestões próprias.", ph:"Ex.: Casa da mãe", v:"", btn:"Criar"},
+      new: {t:"Criar novo", sub:"Cada ambiente tem listas, categorias e sugestões próprias.", ph:"Ex.: Casa da mãe", v:"", btn:"Criar"},
       code: {t:"Entrar com código de convite", sub:"Cole aqui o link ou o código que você recebeu.", ph:"Link ou código do convite", v:"", btn:"Entrar"}
     }[view];
-    openSheet(`<h4>${cfg.t}</h4>${cfg.sub ? `<p class="sub">${cfg.sub}</p>` : ""}
-      <form class="newcat" data-form="envf" style="margin-top:12px"><input id="envField" placeholder="${cfg.ph}" value="${esc(cfg.v)}" autocomplete="off" maxlength="${view === "code" ? 400 : 40}" aria-label="${cfg.t}"><button class="btn primary" type="submit">${cfg.btn}</button></form>
-      <div class="menu"><button data-act="back">${ICON_BACK}Voltar</button></div>`, body => {
+    openSheet(`${sheetHead(cfg.t, true)}${cfg.sub ? `<p class="sub">${cfg.sub}</p>` : ""}
+      <form class="newcat" data-form="envf"><input id="envField" placeholder="${cfg.ph}" value="${esc(cfg.v)}" autocomplete="off" maxlength="${view === "code" ? 400 : 40}" aria-label="${cfg.t}"><button class="btn primary" type="submit">${cfg.btn}</button></form>`, body => {
       const f = $("envField"); setTimeout(() => { try { f.focus(); } catch(e){} }, 260);
-      body.onclick = e => { if (e.target.closest('[data-act="back"]')) openProfile(); };
+      body.onclick = e => { if (e.target.closest('[data-act="back"]')) { if (view === "rename") openMembers(); else openProfile("newchoice"); } };
       body.querySelector('[data-form="envf"]').onsubmit = async e => {
         e.preventDefault(); const v = f.value;
         if (view === "rename") { renameEnv(v); closeSheet(); toast("Ambiente renomeado"); }
@@ -360,55 +391,38 @@ export function openProfile(view){
     });
     return;
   }
+  voltarPara = () => openProfile();
   const ini = (S.meName||"").trim().split(/\s+/).filter(Boolean).map(w => w[0]).join("").slice(0,2).toUpperCase() || "?";
-  const nMem = S.mode === "remote" ? activeMembers().length : 1;
-  const memTxt = nMem === 1 ? "1 membro" : nMem + " membros";
-  const dot = `<span class="env-dot on"></span>`;
-  const multi = P.envs.length > 1;
-  const envHead = cur ? `<div class="envline">${multi
-      ? `<button class="env-pick" data-act="env-toggle" aria-expanded="false">${dot}<span class="env-name">${esc(envName(cur))}</span><svg class="env-chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></button>`
-      : `<span class="env-pick static">${dot}<span class="env-name">${esc(envName(cur))}</span></span>`}
-    <button class="env-mem" data-act="members">${memTxt}</button></div>
-    ${multi ? `<div class="env-sel" id="envSel" hidden>${P.envs.map(e => `<button class="env-opt" data-env="${esc(e.id)}" aria-pressed="${e.id === cur}"><span class="env-name">${esc(envName(e.id))}</span>${e.id === cur ? '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-10"/></svg>' : ""}</button>`).join("")}</div>` : ""}` : "";
   const foto = S.photoFailed ? "" : (S.mePhotoData || S.mePhoto || "");
-  openSheet(`<div class="prof-head"><span class="av-lg" style="--c:${esc(S.meColor || "#ff6b1a")}">${esc(ini)}${foto ? `<img class="av-img" src="${esc(foto)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : ""}</span><div><b>${esc(S.meName || (S.mode === "local" ? "Modo local" : "Você"))}</b>${S.meEmail ? `<small class="prof-mail">${esc(S.meEmail)}</small>` : ""}</div></div>
-    ${envHead}
-    <div class="menu plain">
-      ${S.readonly || !cur ? "" : `<button data-act="invite">Convidar para “${esc(envName(cur))}”</button>`}
-      <button data-act="newchoice">Novo ambiente</button>
-      ${S.mode === "remote" && !S.readonly && cur ? `<button data-act="nfce">Importar nota</button>` : ""}
-      ${S.mode === "remote" && cur ? `<button data-act="notas">Histórico de notas</button>` : ""}
-      <button data-act="valores" role="switch" aria-checked="${valoresOn()}" class="sw-row"><span>Valores na lista</span><i class="switch" aria-hidden="true"></i></button>
-      ${canFeedback() ? `<button data-act="feedback">Enviar sugestão</button>` : ""}
-      ${S.isOwner && S.mode === "remote" ? `<button data-act="inbox">Sugestões recebidas${S.fbUnread ? ` <span class="chip">${S.fbUnread} nova${S.fbUnread > 1 ? "s" : ""}</span>` : ""}</button>` : ""}
-      ${multi ? `<button class="red" data-act="leave">Sair de “${esc(envName(cur))}”</button>` : ""}
-      ${S.mode === "remote" ? `<button class="quiet" data-act="logout">Sair da conta</button>` : ""}
-    </div><div id="leaveBox"></div><p class="app-version" id="appVersion">${esc(versaoTexto)}</p>
+  const row = (act, ic, label, extra) => `<button class="row" data-act="${act}">${ic}<span class="rl">${label}</span>${extra || ""}</button>`;
+  const nNotas = S.mode === "remote" && cur ? contarNotas() : 0;
+  const notasRows = (!S.readonly ? row("nfce", ICON_RECEIPT, "Importar nota") : "") + row("notas", ICON_RECEIPT, "Histórico de notas", `<span class="rr">${nNotas}</span>`);
+  const fbRows = (canFeedback() ? row("feedback", ICON_CHAT, "Enviar sugestão") : "") + (S.isOwner && S.mode === "remote" ? row("inbox", ICON_INBOX, "Sugestões recebidas", S.fbUnread ? `<span class="chip">${S.fbUnread} nova${S.fbUnread > 1 ? "s" : ""}</span>` : "") : "");
+  openSheet(`<div class="prof-head"><span class="av-lg">${esc(ini)}${foto ? `<img class="av-img" src="${esc(foto)}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">` : ""}</span><div><b>${esc(S.meName || (S.mode === "local" ? "Modo local" : "Você"))}</b>${S.meEmail ? `<small class="prof-mail">${esc(S.meEmail)}</small>` : ""}</div></div>
+    <p class="sect" style="margin-top:6px">Ambiente</p>
+    <div class="grp">${S.readonly || !cur ? "" : row("invite", ICON_PEOPLE, `Convidar para “${esc(envName(cur))}”`)}${row("newchoice", ICON_PLUS_L, "Novo ambiente")}</div>
+    ${S.mode === "remote" && cur ? `<p class="sect">Notas</p><div class="grp">${notasRows}</div>` : ""}
+    <p class="sect">Preferências</p>
+    <div class="grp"><button class="row sw-row" data-act="valores" role="switch" aria-checked="${valoresOn()}"><span class="rl">Valores na lista</span><i class="switch" aria-hidden="true"></i></button>${fbRows}</div>
+    ${S.mode === "remote" ? `<div class="divider"></div><button class="row-solo" data-act="logout">${ICON_EXIT}Sair</button>` : ""}
+    <p class="app-version" id="appVersion">${esc(versaoTexto)}</p>
     <div id="diagBox" hidden><p class="app-version" style="margin-top:4px">${esc(otaLinha())}</p><p class="app-version" style="margin-top:4px">${esc(D.diagLinha())}</p><p class="app-version" style="margin-top:4px">${esc(C.textoDiag())}</p></div>`, body => {
     carregarVersao().then(t => { const el = $("appVersion"); if (el) el.textContent = t; });
     /* 5 toques na versão em 3 s mostram/escondem o diagnóstico */
     let taps = [];
     $("appVersion").onclick = () => { const n = Date.now(); taps = taps.filter(t => n - t < 3000).concat(n); if (taps.length >= 5) { taps = []; $("diagBox").hidden = !$("diagBox").hidden; } };
     body.onclick = e => {
-      const tg = e.target.closest('[data-act="env-toggle"]');
-      if (tg) { const sel = $("envSel"); sel.hidden = !sel.hidden; tg.setAttribute("aria-expanded", String(!sel.hidden)); return; }
-      const r = e.target.closest("[data-env]");
-      if (r) { if (r.dataset.env !== S.env) { switchEnv(r.dataset.env); toast(`Agora em “${envName(r.dataset.env)}”`); } openProfile(); return; }
       const b = e.target.closest("[data-act]"); if (!b) return;
       const a = b.dataset.act;
-      if (a === "invite") { closeSheet(); setTimeout(openHelp, 240); }
-      else if (a === "members") openMembers();
+      if (a === "ambientes") openAmbientes();
+      else if (a === "invite") { closeSheet(); setTimeout(openHelp, 240); }
       else if (a === "feedback") openFeedback("perfil");
       else if (a === "inbox") openInbox();
-      else if (a === "rename" || a === "new" || a === "code") openProfile(a);
       else if (a === "newchoice") openProfile("newchoice");
       else if (a === "nfce") { closeSheet(); setTimeout(openImportar, 240); }
-      else if (a === "notas") { closeSheet(); setTimeout(openNotas, 240); }
+      else if (a === "notas") openNotas();
       else if (a === "valores") { setValoresOn(!valoresOn()); b.setAttribute("aria-checked", String(valoresOn())); render(); }
       else if (a === "logout") { closeSheet(); sair(); }
-      else if (a === "leave") $("leaveBox").innerHTML = `<p class="sub" style="margin-top:12px">Sair de “${esc(envName(S.env))}”? As listas continuam lá para quem participa. Para voltar, você vai precisar do código.</p><div class="confirm"><button class="btn" data-act="cancel">Cancelar</button><button class="btn danger" data-act="leave-yes">Sair</button></div>`;
-      else if (a === "cancel") $("leaveBox").innerHTML = "";
-      else if (a === "leave-yes") { const nm = envName(S.env); leaveEnv(S.env); closeSheet(); toast(`Você saiu de “${nm}”`); }
     };
   });
 }
