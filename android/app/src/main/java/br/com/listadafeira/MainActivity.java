@@ -21,7 +21,7 @@ import com.getcapacitor.BridgeActivity;
  * env(safe-area-inset-*) = 0 e a página não soma o espaço duas vezes.
  */
 public class MainActivity extends BridgeActivity {
-    private static final int BG = 0xFF151515;
+    private static final int BG = 0xFF0E0E0F;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
