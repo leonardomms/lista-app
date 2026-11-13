@@ -103,7 +103,7 @@ h1{font-family:var(--display);font-weight:700;font-size:32px;letter-spacing:-.03
 .cat{touch-action:pan-y;background:var(--surface);border:1.5px solid var(--line);border-radius:24px;padding:0 4px 4px;transition:border-color .15s}
 .cat.selected{border-color:var(--accent)}
 .cat-head{display:flex;align-items:center;gap:10px;min-height:48px;padding:0 4px 0 14px;cursor:pointer}
-.cat-name{flex:0 1 auto;display:flex;align-items:center;gap:10px;min-width:0;text-align:left;color:var(--text-2);min-height:48px}
+.cat-name{flex:1;display:flex;align-items:center;gap:10px;min-width:0;text-align:left;color:var(--text-2);min-height:48px}
 .cat-head .sw{margin:0}
 .cat-head h3{margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--mono);font-size:12px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--text-2);flex:1;min-width:0}
 .cat-head .cv,.cat-head .cn{flex:none;font-family:var(--mono);font-size:12px;font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -498,9 +498,9 @@ input.mono{font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase
 .cat-check svg{width:14px;height:14px;justify-self:end;margin-right:7px}
 .cat-head{padding-right:0}
 
-/* chevron do cabeçalho alinhado à borda direita dos preços dos itens (preço termina 4px antes do check) */
-.cat-toggle{width:16px;margin-right:-6px;place-items:center end}
+/* cabeçalho da categoria, à direita: contador (só fechado), chevron, valor e check. O valor termina onde terminam os preços dos itens (4px antes do check) */
+.cat-head .cn{order:1}
+.cat-toggle{order:2;width:16px;place-items:center}
+.cat-head .cv{order:3;margin-right:-6px}
+.cat-check{order:4}
 .cat:not(.collapsed) .cat-head .cn{display:none}
-/* valor da categoria junto ao nome (à direita só ficam contador, chevron e check, e nada concorre com os preços dos itens) */
-.cat-head .cv{margin:0 auto 0 -2px}
-.cat-head .cv::before{content:"· "}
