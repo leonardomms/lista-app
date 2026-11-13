@@ -59,7 +59,7 @@ export function priceSheetHTML(it){
   const key = keyOf(it.text); if (!key || S.readonly) return "";
   const last = pricesOf(key)[0];
   const pl = last && placeById(last.placeId);
-  return `<p class="sect">Preço</p><form class="priceedit" data-form="price"><label class="pricefield"><span>R$</span><input inputmode="decimal" autocomplete="off" placeholder="0,00" aria-label="Preço em reais (aceita 3,39 ou 3.39)" value="${last ? last.price.toFixed(2).replace(".", ",") : ""}"></label><button class="btn primary" type="submit">Salvar</button>${last ? `<button class="btn ghost" type="button" data-act="del-price">Apagar</button>` : ""}</form>${pl ? `<p class="price-hint">${esc(pl.name)}</p>` : ""}`;
+  return `<p class="sect">Preço</p><form class="priceedit" data-form="price"><label class="pricefield"><span>R$</span><input inputmode="decimal" autocomplete="off" placeholder="0,00" aria-label="Preço em reais (aceita 3,39 ou 3.39)" value="${last ? last.price.toFixed(2).replace(".", ",") : ""}"></label><button class="btn primary" type="submit">Salvar</button></form>${pl ? `<p class="price-hint">${esc(pl.name)}</p>` : ""}`;
 }
 export function bindPriceSheet(body, it, close){
   const f = body.querySelector('[data-form="price"]'); if (!f) return;
@@ -67,9 +67,8 @@ export function bindPriceSheet(body, it, close){
   f.onsubmit = e => {
     e.preventDefault();
     const p = parsePreco(f.querySelector("input").value);
-    if (p && (!last || p !== last.price)) salvar(it, f.querySelector("input").value);   // registro novo e mais recente: passa na frente do preço da nota; os antigos ficam
+    if (!p && last && !f.querySelector("input").value.trim()) write("prices", last.id, null, "del");   // campo vazio + Salvar apaga o último preço
+    else if (p && (!last || p !== last.price)) salvar(it, f.querySelector("input").value);   // registro novo e mais recente: passa na frente do preço da nota; os antigos ficam
     close();
   };
-  const del = f.querySelector('[data-act="del-price"]');
-  if (del) del.onclick = () => { write("prices", last.id, null, "del"); close(); };
 }

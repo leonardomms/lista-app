@@ -273,7 +273,6 @@ export function makeLi(id){
     <span class="fill"></span>
     <span class="pv"></span>
     <span class="tag" hidden><i></i><b></b></span>
-    <button class="more" aria-label="Opções do item">${ICON_MORE}</button>
     <button class="check" role="checkbox" aria-checked="false" aria-label="Riscar item">${ICON_CHECK}</button>`;
   return li;
 }

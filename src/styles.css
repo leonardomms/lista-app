@@ -421,8 +421,8 @@ input.mono{font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase
 .cprow select{flex:1;min-width:0;height:44px;background:var(--surface-solid);color:inherit;border:1px solid var(--line);border-radius:12px;padding:0 8px;font-size:14px}
 
 /* preço ao riscar e na folha do item */
-.toast.on ~ .sheet.on ~ .priceedit{display:flex;align-items:center;gap:8px;margin:0 0 4px}
-.pricefield{display:flex;align-items:center;gap:8px;flex:1;min-width:0;height:48px;border-radius:18px;background:var(--field);border:1px solid var(--line);padding:0 16px}
+.priceedit{display:flex;align-items:center;gap:12px;margin:0 0 4px}
+.pricefield{display:flex;align-items:center;gap:8px;flex:0 0 auto;width:136px;min-width:0;height:48px;border-radius:18px;background:var(--field);border:1px solid var(--line);padding:0 16px}
 .pricefield:focus-within{border-color:var(--accent)}
 .pricefield span{font-family:var(--mono);color:var(--muted);font-size:15px}
 .pricefield input{flex:1;min-width:0;background:none;border:0;outline:none;font-family:var(--mono);font-size:17px}
