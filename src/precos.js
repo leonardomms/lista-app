@@ -33,18 +33,21 @@ const VAL_KEY = "lista-valores-v1";
 export const valoresOn = () => { try { return localStorage.getItem(VAL_KEY) !== "0"; } catch(e){ return true; } };
 export const setValoresOn = on => { try { localStorage.setItem(VAL_KEY, on ? "1" : "0"); } catch(e){} };
 const num = n => Number(n).toLocaleString("pt-BR", {minimumFractionDigits: 2, maximumFractionDigits: 2});
+export const qtyOf = it => (it && it.qty > 1 ? it.qty : 1);
 const priceOf = it => { const key = keyOf(it.text); if (!key) return null; const { def, fb } = placeFor(it.cat); return resolvePrice(key, def, fb, [...S.prices.values()]); };
-export function itemValor(it){ const p = priceOf(it); return p == null ? "" : num(p); }
+/* valor da linha: preço da unidade × quantidade, em centavos para não acumular erro de float */
+const linhaCents = it => { const p = priceOf(it); return p == null ? null : Math.round(p * 100) * qtyOf(it); };
+export function itemValor(it){ const c = linhaCents(it); return c == null ? "" : num(c / 100); }
 /* soma de todos os itens da categoria (riscados ou não) que têm preço */
 /* estimativa da lista toda: soma dos itens com preço (riscados ou não) e quantos ficaram sem preço */
 export function listaValor(arr){
   const all = [...S.prices.values()]; let c = 0, n = 0, falta = 0;
-  for (const it of arr) { const key = keyOf(it.text); if (!key) continue; const { def, fb } = placeFor(it.cat); const p = resolvePrice(key, def, fb, all); if (p == null) falta++; else { c += Math.round(p * 100); n++; } }
+  for (const it of arr) { const key = keyOf(it.text); if (!key) continue; const { def, fb } = placeFor(it.cat); const p = resolvePrice(key, def, fb, all); if (p == null) falta++; else { c += Math.round(p * 100) * qtyOf(it); n++; } }
   return {text: n ? "R$ " + num(c / 100) : "", falta};
 }
 export function catValor(arr){
   const all = [...S.prices.values()]; let c = 0, n = 0;
-  for (const it of arr) { const key = keyOf(it.text); if (!key) continue; const { def, fb } = placeFor(it.cat); const p = resolvePrice(key, def, fb, all); if (p != null) { c += Math.round(p * 100); n++; } }
+  for (const it of arr) { const key = keyOf(it.text); if (!key) continue; const { def, fb } = placeFor(it.cat); const p = resolvePrice(key, def, fb, all); if (p != null) { c += Math.round(p * 100) * qtyOf(it); n++; } }
   return n ? num(c / 100) : "";
 }
 
@@ -54,14 +57,25 @@ function salvar(it, v){
   return true;
 }
 
-/* ---- folha do item: definir o preço à mão (vale mais que o das notas, pois é o registro mais novo), corrigir ou apagar o último ---- */
+/* ---- folha do item: preço da unidade e quantidade lado a lado, logo abaixo do título (definir o preço à mão vale mais que o das notas, pois é o registro mais novo; campo vazio + Salvar apaga) ---- */
 export function priceSheetHTML(it){
   const key = keyOf(it.text); if (!key || S.readonly) return "";
   const last = pricesOf(key)[0];
-  const pl = last && placeById(last.placeId);
-  return `<p class="sect">Preço</p><form class="priceedit" data-form="price"><label class="pricefield"><span>R$</span><input inputmode="decimal" autocomplete="off" placeholder="0,00" aria-label="Preço em reais (aceita 3,39 ou 3.39)" value="${last ? last.price.toFixed(2).replace(".", ",") : ""}"></label><button class="btn primary" type="submit">Salvar</button></form>${pl ? `<p class="price-hint">${esc(pl.name)}</p>` : ""}`;
+  return `<div class="topedit"><form id="priceForm" class="pricefield" data-form="price"><span>R$</span><input inputmode="decimal" autocomplete="off" placeholder="0,00" aria-label="Preço da unidade em reais (aceita 3,39 ou 3.39)" value="${last ? last.price.toFixed(2).replace(".", ",") : ""}"></form><div class="stepper"><button type="button" data-qty="-1" aria-label="Diminuir quantidade">−</button><output id="qtyOut" aria-live="polite">${qtyOf(it)}</output><button type="button" data-qty="1" aria-label="Aumentar quantidade">+</button></div></div>`;
+}
+export const priceSaveHTML = it => (!keyOf(it.text) || S.readonly) ? "" : `<button class="btn primary" type="submit" form="priceForm">Salvar</button>`;
+function bindQty(body, it){
+  const out = body.querySelector("#qtyOut"); if (!out) return;
+  let q = qtyOf(it);
+  const paint = () => { out.textContent = q; body.querySelector('[data-qty="-1"]').disabled = q <= 1; body.querySelector('[data-qty="1"]').disabled = q >= 99; };
+  paint();
+  body.querySelectorAll("[data-qty]").forEach(b => b.onclick = () => {
+    const n = Math.min(99, Math.max(1, q + Number(b.dataset.qty))); if (n === q) return;
+    q = n; paint(); write("items", it.id, {qty: q}, "patch");
+  });
 }
 export function bindPriceSheet(body, it, close){
+  bindQty(body, it);
   const f = body.querySelector('[data-form="price"]'); if (!f) return;
   const last = pricesOf(keyOf(it.text))[0];
   f.onsubmit = e => {

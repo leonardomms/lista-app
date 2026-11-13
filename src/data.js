@@ -31,7 +31,7 @@ const isoOpt = n => n ? new Date(n).toISOString() : undefined;   // undefined = 
 const isoNull = n => n ? new Date(n).toISOString() : null;
 
 export const fromList = r => ({title: r.title, done: r.done, catOrder: r.cat_order || [], dismissed: r.dismissed || [], createdAt: ms(r.created_at)});
-export const fromItem = r => ({listId: r.list_id, text: r.text, cat: r.cat, order: r.ord, checked: r.checked, checkedAt: ms(r.checked_at), createdAt: ms(r.created_at), by: r.created_by || null});
+export const fromItem = r => ({listId: r.list_id, text: r.text, cat: r.cat, order: r.ord, checked: r.checked, checkedAt: ms(r.checked_at), createdAt: ms(r.created_at), by: r.created_by || null, qty: r.qty || 1});
 export const fromTrip = r => ({listId: r.list_id || null, at: ms(r.at), items: r.items || []});
 export const fromMember = r => ({role: r.role, creator: r.creator, removed: r.removed, joinedAt: ms(r.joined_at)});
 export const fromPrice = r => ({key: r.key, placeId: r.place_id || null, price: Number(r.price), at: ms(r.at)});
@@ -41,7 +41,7 @@ const FROM = {lists: fromList, items: fromItem, history: fromTrip, prices: fromP
 const TABLE = {lists: "lists", items: "items", history: "trips", prices: "prices", nfce: "nfce_refs"};
 const COLS = {
   lists: {title: ["title"], done: ["done"], catOrder: ["cat_order"], dismissed: ["dismissed"], createdAt: ["created_at", isoOpt]},
-  items: {listId: ["list_id"], text: ["text"], cat: ["cat"], order: ["ord"], checked: ["checked"], checkedAt: ["checked_at", isoNull], createdAt: ["created_at", isoOpt], by: ["created_by"]},
+  items: {listId: ["list_id"], text: ["text"], cat: ["cat"], order: ["ord"], checked: ["checked"], checkedAt: ["checked_at", isoNull], createdAt: ["created_at", isoOpt], by: ["created_by"], qty: ["qty"]},
   history: {listId: ["list_id"], at: ["at", isoOpt], items: ["items"]},
   prices: {key: ["key"], placeId: ["place_id"], price: ["price"], at: ["at", isoOpt]},
   nfce: {kind: ["kind"], ref: ["ref"], key: ["key"], note: ["data"]},

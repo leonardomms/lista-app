@@ -18,3 +18,8 @@ const items = [{text: "Leite", cat: "x"}, {text: "2 kg de arroz", cat: "x"}, {te
 assert.deepEqual(forecast(items, prices, pf, keyOf), {total: 26, missing: 1}, "soma só os não riscados; 1 sem preço; vazio ignorado");
 assert.deepEqual(forecast([{text: "Leite", cat: "x"}, {text: "Leite", cat: "x"}], [P("leite", "mercado", 0.1, 1)].concat([P("leite", "mercado", 0.2, 2)]), pf, keyOf), {total: 0.4, missing: 0}, "centavos sem erro de float");
 console.log("ok");
+
+/* quantidade: preço da unidade × qty, qty ausente vale 1 */
+assert.deepEqual(forecast([{text: "Leite", cat: "x", qty: 3}], [P("leite", "mercado", 10, 1)], pf, keyOf), {total: 30, missing: 0}, "3 × R$ 10 = R$ 30");
+assert.deepEqual(forecast([{text: "Leite", cat: "x", qty: 3, checked: true}], [P("leite", "mercado", 10, 1)], pf, keyOf), {total: 0, missing: 0}, "riscado não entra");
+console.log("quantidade ok");

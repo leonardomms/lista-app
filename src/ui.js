@@ -4,7 +4,7 @@ import { norm, guessCat, splitItems, learn, allCats, catById, sortedCatsFor, add
 import { S, shopping, myCreated, pendingBlank, expanded, hold, holdTimers, drafts, draftTimers, $, esc } from "./estado.js";
 import { itemsOf, newId, write } from "./dados.js";
 import { openHelp, envName, openProfile, openAmbientes } from "./ambientes.js";
-import { valoresOn, itemValor, catValor, listaValor, priceSheetHTML, bindPriceSheet } from "./precos.js";
+import { valoresOn, itemValor, catValor, listaValor, priceSheetHTML, priceSaveHTML, bindPriceSheet, qtyOf } from "./precos.js";
 import { sgHidden, currentSuggestions, logTrip, suggestHTML, lsSet, showFbPrompt, openFeedback } from "./sugestoes.js";
 import { ICON_GRIP, ICON_CHECK, ICON_MORE, ICON_TRASH, ICON_UNDO, ICON_BROOM, ICON_COPY, ICON_CHECKBIG, ICON_PEOPLE, ICON_TAG, ICON_PLUS, ICON_CHECK_XL, ICON_CHEV, ICON_SPARK, ICON_BASKET, ICON_RECEIPT, ICON_SORT, ICON_BACK } from "./icones.js";
 import { openImportar } from "./nfce.js";
@@ -270,6 +270,7 @@ export function makeLi(id){
   li.className = "item"; li.dataset.id = id;
   li.innerHTML = `<span class="grip" aria-hidden="true">${ICON_GRIP}</span>
     <input class="txt" data-item-id="${esc(id)}" autocomplete="off" enterkeyhint="next" placeholder="Item" aria-label="Nome do item">
+    <span class="qt" hidden></span>
     <span class="fill"></span>
     <span class="pv"></span>
     <span class="tag" hidden><i></i><b></b></span>
@@ -287,6 +288,7 @@ export function updateLi(li, it, isCart){
   const val = drafts.has(it.id) ? drafts.get(it.id) : (it.text || "");
   if (document.activeElement !== inp && inp.value !== val) inp.value = val;
   inp.readOnly = S.readonly;
+  const qt = li.querySelector(".qt"), q = qtyOf(it); qt.hidden = q < 2; qt.textContent = q > 1 ? "×" + q : "";
   li.querySelector(".pv").textContent = valoresOn() ? itemValor(it) : "";
   const tag = li.querySelector(".tag");
   tag.hidden = !isCart;
@@ -484,7 +486,7 @@ export function duplicateList(){
   const src = S.lists.get(S.listId); if (!src) return;
   const id = newId();
   write("lists", id, {title:(src.title || "Lista") + " (cópia)", createdAt:Date.now(), done:false, catOrder:src.catOrder||[]}, "set");
-  itemsOf(S.listId).forEach(i => { const nid = newId(); myCreated.add(nid); write("items", nid, {listId:id, text:i.text, cat:i.cat, order:i.order, checked:false, checkedAt:0, createdAt:Date.now(), by:S.myId||null}, "set"); });
+  itemsOf(S.listId).forEach(i => { const nid = newId(); myCreated.add(nid); write("items", nid, {listId:id, text:i.text, cat:i.cat, order:i.order, qty:qtyOf(i), checked:false, checkedAt:0, createdAt:Date.now(), by:S.myId||null}, "set"); });
   openList(id);
   toast("Lista duplicada");
 }
@@ -597,9 +599,9 @@ export function newCatFormHTML(){
 export function openItemSheet(id){
   const it = S.items.get(id); if (!it) return;
   flushDraft(id);
-  openSheet(`<h4>${esc(it.text || "Item sem nome")}</h4><p class="sub">Mover para outra categoria</p><label class="catsearch"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="catQ" type="search" placeholder="Buscar ou criar categoria" autocomplete="off" aria-label="Buscar categoria"></label>${catPillsHTML(it.cat)}<div id="catNew"></div>${priceSheetHTML(it)}
-    <div class="divider"></div><button class="row-solo red" data-act="del-item">${ICON_TRASH}Excluir item</button>`, body => {
-    bindPriceSheet(body, it, closeSheet);
+  openSheet(`<h4>${esc(it.text || "Item sem nome")}</h4>${priceSheetHTML(it)}<label class="catsearch"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="catQ" type="search" placeholder="Buscar ou criar categoria" autocomplete="off" aria-label="Buscar categoria"></label>${catPillsHTML(it.cat)}<div id="catNew"></div>
+    <div class="divider"></div><div class="item-actions"><button class="btn danger" data-act="del-item">Excluir item</button>${priceSaveHTML(it)}</div>`, body => {
+    bindPriceSheet(body, {...it, id}, closeSheet);
     const q = $("catQ"), moveTo = cid => { const cur = S.items.get(id); if (cid && cur && cur.cat !== cid) { write("items", id, {cat: cid, order: nextOrderInCat(cur.listId, cid)}, "patch"); learn(cur.text, cid); } closeSheet(); };
     q.oninput = () => {
       const t = norm(q.value); let n = 0;

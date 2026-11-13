@@ -507,3 +507,21 @@ input.mono{font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase
 
 /* centro óptico do check: o vértice inferior pesa, então o traço sobe ~0,6px; o círculo é content-box (30px com a borda), então o ícone também volta 1px para a esquerda para parecer centralizado no círculo */
 .item .check svg,.cat-check svg{translate:-1px -.6px}
+
+/* quantidade: "×3" discreto depois do nome; stepper só na folha do item */
+.item .qt{flex:none;font-family:var(--mono);font-size:12px;color:var(--muted);margin-left:6px;font-variant-numeric:tabular-nums}
+.item.done .qt{color:var(--done-text)}
+.qtyedit{display:flex;align-items:center;gap:14px;margin:0 0 4px}
+.stepper{display:flex;align-items:center;height:48px;border-radius:18px;background:var(--field);border:1px solid var(--line)}
+.stepper button{width:48px;height:100%;font-size:20px;color:var(--fg);border-radius:18px}
+.stepper button:disabled{color:var(--faint)}
+.stepper output{min-width:34px;text-align:center;font-family:var(--mono);font-size:17px;font-variant-numeric:tabular-nums}
+.qty-sum{font-family:var(--mono);font-size:12px;color:var(--muted)}
+
+/* folha do item: preço e quantidade lado a lado no topo; Salvar e Excluir lado a lado no fim */
+.topedit{display:flex;align-items:center;gap:12px;margin:14px 0 18px}
+.topedit .pricefield{flex:1;width:auto}
+.item-actions{display:flex;gap:12px}
+.item-actions .btn{flex:1}
+.item-actions .btn.primary{background:var(--field);color:var(--fg);border-color:var(--line-strong)}
+.item-actions .btn.danger{background:none;color:var(--danger);border-color:var(--line)}

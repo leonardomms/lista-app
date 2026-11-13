@@ -10,7 +10,7 @@ export function resolvePrice(key, def, fb, prices){
   const p = (def && latest(prices, key, def)) || (fb && latest(prices, key, fb)) || latest(prices, key);
   return p ? p.price : null;
 }
-/* soma o que falta comprar (itens não riscados, um item = um preço); itens sem texto não contam; soma em centavos */
+/* soma o que falta comprar (itens não riscados; preço da unidade × qty, que vale 1 se faltar); itens sem texto não contam; soma em centavos */
 export function forecast(items, prices, placeFor, keyOf){
   let cents = 0, missing = 0;
   for (const it of items) {
@@ -18,7 +18,7 @@ export function forecast(items, prices, placeFor, keyOf){
     const key = keyOf(it.text); if (!key) continue;
     const { def, fb } = placeFor(it.cat);
     const p = resolvePrice(key, def, fb, prices);
-    if (p == null) missing++; else cents += Math.round(p * 100);
+    if (p == null) missing++; else cents += Math.round(p * 100) * (it.qty > 1 ? it.qty : 1);
   }
   return {total: cents / 100, missing};
 }
