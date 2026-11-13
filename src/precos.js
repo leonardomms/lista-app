@@ -45,7 +45,7 @@ export function listaValor(arr){
 export function catValor(arr){
   const all = [...S.prices.values()]; let c = 0, n = 0;
   for (const it of arr) { const key = keyOf(it.text); if (!key) continue; const { def, fb } = placeFor(it.cat); const p = resolvePrice(key, def, fb, all); if (p != null) { c += Math.round(p * 100); n++; } }
-  return n ? "R$ " + num(c / 100) : "";
+  return n ? num(c / 100) : "";
 }
 
 function salvar(it, v){

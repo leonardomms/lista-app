@@ -500,3 +500,4 @@ input.mono{font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase
 
 /* chevron do cabeçalho alinhado à borda direita dos preços dos itens (preço termina 4px antes do check) */
 .cat-toggle{width:16px;margin-right:-6px;place-items:center end}
+.cat:not(.collapsed) .cat-head .cn{display:none}
