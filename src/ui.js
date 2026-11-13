@@ -69,13 +69,10 @@ export function renderHome(){
 export function cardHTML(l){
   const its = itemsOf(l.id);
   const total = its.length, checked = its.filter(i=>i.checked).length;
-  const open = its.filter(i=>!i.checked).sort((a,b)=>a.order-b.order);
-  const prev = total === 0 ? "Lista vazia" : open.length ? open.slice(0,8).map(i=>i.text||"…").join(" · ") : "Tudo no carrinho";
   const pct = total ? Math.round(checked/total*100) : 0;
   const lv = valoresOn() ? listaValor(its) : {text: ""};
   return `<article class="lcard ${l.done?"done":"active"}" data-open="${esc(l.id)}" tabindex="0" role="button" aria-label="Abrir ${esc(l.title||"lista sem nome")}">
     <div class="ltop"><h2>${esc(l.title || "Lista sem nome")}</h2>${lv.text ? `<span class="lval">${esc(lv.text)}</span>` : ""}</div>
-    <p class="prev">${esc(prev)}</p>
     <div class="bar6"><i style="width:${l.done?100:pct}%"></i></div>
     <div class="lfoot"><span>${checked} de ${total} ${total === 1 ? "item" : "itens"}</span><span>${l.done?100:pct}%</span></div>
   </article>`;
@@ -413,7 +410,7 @@ export function toggleItem(id){
 }
 export function toggleCat(cid){
   const sec = [...document.querySelectorAll("#catsWrap .cat")].find(s => s.dataset.cat === cid); if (!sec) return;
-  const its = [...sec.querySelectorAll("li.item")].map(li => S.items.get(li.dataset.id)).filter(Boolean);
+  const its = [...sec.querySelectorAll("li.item")].map(li => { const it = S.items.get(li.dataset.id); return it && {...it, id: li.dataset.id}; }).filter(Boolean);
   if (!its.length) return;
   const checked = its.some(i => !i.checked);   // algum aberto: riscar todos; senão desmarcar todos
   const lid = its[0].listId;
