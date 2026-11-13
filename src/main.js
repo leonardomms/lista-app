@@ -11,7 +11,7 @@ import { Capacitor } from "@capacitor/core";
 import { App } from "@capacitor/app";
 import { S, $ } from "./estado.js";
 import { render, bindEvents, closeSheet, goHome } from "./ui.js";
-import { CapacitorUpdater } from "@capgo/capacitor-updater";
+import { OtaKit } from "@otakit/capacitor-updater";
 import { registrarEventosOta } from "./versao.js";
 import { bindVoz } from "./voz.js";
 import { startLocal, startRemote } from "./ambientes.js";
@@ -21,8 +21,8 @@ import { atualizarSelo } from "./rede.js";
 import { limpar as limparCache, conferirUsuario } from "./cache.js";
 import { reconectar } from "./dados.js";
 
-/* OTA (Capgo): confirma que este código abriu bem; sem isso o plugin volta para a versão anterior. Só no app nativo. */
-if (Capacitor.isNativePlatform()) { registrarEventosOta(); CapacitorUpdater.notifyAppReady().catch(() => {}); }
+/* OTA (OtaKit): confirma que este código abriu bem; sem isso o plugin volta para a versão anterior. Só no app nativo. */
+if (Capacitor.isNativePlatform()) { registrarEventosOta(); OtaKit.notifyAppReady().catch(() => {}); }
 
 bindEvents();
 bindVoz();

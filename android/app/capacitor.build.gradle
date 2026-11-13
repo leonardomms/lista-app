@@ -12,7 +12,7 @@ dependencies {
     implementation project(':capacitor-community-speech-recognition')
     implementation project(':capacitor-app')
     implementation project(':capgo-capacitor-social-login')
-    implementation project(':capgo-capacitor-updater')
+    implementation project(':otakit-capacitor-updater')
 
 }
 

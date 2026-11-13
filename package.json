@@ -14,6 +14,7 @@
   "devDependencies": {
     "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^8.5.3",
+    "@otakit/cli": "^1.12.0",
     "vite": "^8.3.5"
   },
   "dependencies": {
@@ -22,9 +23,9 @@
     "@capacitor/app": "^8.1.2",
     "@capacitor/core": "^8.5.3",
     "@capgo/capacitor-social-login": "^8.7.5",
-    "@capgo/capacitor-updater": "^8.54.0",
     "@fontsource/geist": "^5.3.0",
     "@fontsource/geist-mono": "^5.3.0",
+    "@otakit/capacitor-updater": "^3.3.0",
     "@supabase/supabase-js": "^2.118.0",
     "jsqr": "^1.4.0",
     "sortablejs": "^1.15.7"

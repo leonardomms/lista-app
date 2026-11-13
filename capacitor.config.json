@@ -8,9 +8,6 @@
       "insetsHandling": "disable",
       "style": "DARK"
     },
-    "CapacitorUpdater": {
-      "autoUpdate": true
-    },
     "SocialLogin": {
       "providers": {
         "google": true,
@@ -19,6 +16,9 @@
         "twitter": false
       },
       "logLevel": 1
+    },
+    "OtaKit": {
+      "appId": "c92c242c-7fd9-489b-8580-689e5fe8ae9b"
     }
   }
 }
