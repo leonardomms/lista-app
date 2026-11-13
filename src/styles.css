@@ -504,3 +504,6 @@ input.mono{font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase
 .cat:not(.collapsed) .cat-toggle,.cat.collapsed .cat-head .cn{margin-left:auto}
 .cat-head .cv::before{content:"· "}
 .cat:not(.collapsed) .cat-head .cn{display:none}
+
+/* centro óptico do check: o vértice inferior pesa, então o traço sobe ~0,6px para parecer centralizado no círculo */
+.item .check svg,.cat-check svg{translate:0 -.6px}
