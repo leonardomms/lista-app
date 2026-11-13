@@ -497,3 +497,6 @@ input.mono{font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase
 .cat-check::before{width:28px;height:28px}
 .cat-check svg{width:14px;height:14px;justify-self:end;margin-right:7px}
 .cat-head{padding-right:0}
+
+/* chevron do cabeçalho alinhado à borda direita dos preços dos itens (preço termina 4px antes do check) */
+.cat-toggle{width:16px;margin-right:-6px;place-items:center end}
