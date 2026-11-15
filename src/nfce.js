@@ -167,8 +167,10 @@ export function openImportar(){
     /* dentro de uma lista: o que foi comprado e não está nela entra riscado (já comprado) */
     let novos = 0;
     if (listaId && S.lists.has(listaId)) {
-      const tem = new Set(itemsOf(listaId).map(i => keyOf(i.text)));
+      const existentes = itemsOf(listaId), tem = new Set(existentes.map(i => keyOf(i.text)));
       for (const r of sel) {
+        const ja = existentes.find(i => keyOf(i.text) === r.key && !i.checked);
+        if (ja) { write("items", ja.id, {checked: true, checkedAt: agora}, "patch"); continue; }   // comprado: risca o que já estava na lista
         if (tem.has(r.key)) continue; tem.add(r.key);
         const cat = guessCat(r.label) || "outros";
         write("items", newId(), {listId: listaId, text: r.label, cat, order: nextOrderInCat(listaId, cat), checked: true, checkedAt: agora, createdAt: agora, by: S.myId || null}, "set"); novos++;
