@@ -34,7 +34,16 @@ export const valoresOn = () => { try { return localStorage.getItem(VAL_KEY) !== 
 export const setValoresOn = on => { try { localStorage.setItem(VAL_KEY, on ? "1" : "0"); } catch(e){} };
 const num = n => Number(n).toLocaleString("pt-BR", {minimumFractionDigits: 2, maximumFractionDigits: 2});
 export const qtyOf = it => (it && it.qty > 1 ? it.qty : 1);
-const priceOf = it => { const key = keyOf(it.text); if (!key) return null; const { def, fb } = placeFor(it.cat); return resolvePrice(key, def, fb, [...S.prices.values()]); };
+/* lista concluída guarda o que custou: item riscado nela só enxerga preços até 1 min depois de riscado (a faixa de preço e a nota gravam logo após o risco);
+   preços novos (outra nota, outra lista) não mexem no histórico. Lista aberta ou item sem data seguem o preço mais recente. */
+const GRACA = 60000;
+function precoDe(it, all){
+  const key = keyOf(it.text); if (!key) return null;
+  const l = S.lists.get(it.listId);
+  const pr = l && l.done && it.checked && it.checkedAt ? all.filter(p => p.at <= it.checkedAt + GRACA) : all;
+  const { def, fb } = placeFor(it.cat); return resolvePrice(key, def, fb, pr);
+}
+const priceOf = it => precoDe(it, [...S.prices.values()]);
 /* valor da linha: preço da unidade × quantidade, em centavos para não acumular erro de float */
 const linhaCents = it => { const p = priceOf(it); return p == null ? null : Math.round(p * 100) * qtyOf(it); };
 export function itemValor(it){ const c = linhaCents(it); return c == null ? "" : num(c / 100); }
@@ -42,12 +51,12 @@ export function itemValor(it){ const c = linhaCents(it); return c == null ? "" :
 /* estimativa da lista toda: soma dos itens com preço (riscados ou não) e quantos ficaram sem preço */
 export function listaValor(arr){
   const all = [...S.prices.values()]; let c = 0, n = 0, falta = 0;
-  for (const it of arr) { const key = keyOf(it.text); if (!key) continue; const { def, fb } = placeFor(it.cat); const p = resolvePrice(key, def, fb, all); if (p == null) falta++; else { c += Math.round(p * 100) * qtyOf(it); n++; } }
+  for (const it of arr) { if (!keyOf(it.text)) continue; const p = precoDe(it, all); if (p == null) falta++; else { c += Math.round(p * 100) * qtyOf(it); n++; } }
   return {text: n ? "R$ " + num(c / 100) : "", falta};
 }
 export function catValor(arr){
   const all = [...S.prices.values()]; let c = 0, n = 0;
-  for (const it of arr) { const key = keyOf(it.text); if (!key) continue; const { def, fb } = placeFor(it.cat); const p = resolvePrice(key, def, fb, all); if (p != null) { c += Math.round(p * 100) * qtyOf(it); n++; } }
+  for (const it of arr) { if (!keyOf(it.text)) continue; const p = precoDe(it, all); if (p != null) { c += Math.round(p * 100) * qtyOf(it); n++; } }
   return n ? num(c / 100) : "";
 }
 
