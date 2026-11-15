@@ -3,9 +3,9 @@
    Memória por ambiente em S.nfce: vínculos "cnpj|código → item" e chaves de acesso já importadas. Nada do consumidor é lido nem guardado.
    Ler a nota precisa de internet; gravar depois usa a fila e funciona offline. */
 import { S, esc } from "./estado.js";
-import { write, newId } from "./dados.js";
-import { openSheet, closeSheet, toast } from "./ui.js";
-import { keyOf } from "./categorias.js";
+import { write, newId, itemsOf } from "./dados.js";
+import { openSheet, closeSheet, toast, nextOrderInCat } from "./ui.js";
+import { keyOf, guessCat } from "./categorias.js";
 import { placesList, addPlace, setPlaceCnpj } from "./locais.js";
 import * as D from "./data.js";
 import { fmt } from "./precos.js";
@@ -44,10 +44,11 @@ function vinculos(){
   return out;
 }
 
-const HINT = {lembrado: "lembrado", alta: "provável", media: "confira", manual: "escolhido"};
+const HINT = {lembrado: "lembrado", alta: "provável", media: "confira", manual: "escolhido", novo: "novo na lista"};
 
 export function openImportar(){
   if (S.readonly || S.mode !== "remote") return;
+  const listaId = S.view === "list" && S.listId ? S.listId : null;   // aberta dentro de uma lista: o que não está nela entra nela
   let nota = null, lugar = null, rows = [], cands = [], stopCam = null, pickI = -1;
   const sheet = () => document.getElementById("sheetBody");
   const parar = () => { if (stopCam) { stopCam(); stopCam = null; } };
@@ -108,9 +109,10 @@ export function openImportar(){
   function revisar(){
     cands = candidatos();
     const sug = matchAll(nota.items, cands, vinculos(), nota.issuer.cnpj);
-    const grupo = c => c === "media" ? 0 : c === "alta" ? 1 : c === "lembrado" ? 2 : 3;
+    const grupo = c => c === "media" ? 0 : c === "novo" ? 1 : c === "alta" ? 2 : c === "lembrado" ? 3 : 4;
     rows = nota.items.map((line, n) => {
-      const s = sug[n];
+      let s = sug[n];
+      if (!s && listaId) { const label = prettyName(line.name), key = keyOf(label); if (key) s = {key, label, conf: "novo"}; }
       return {line, n, key: s ? s.key : null, label: s ? s.label : "", conf: s ? s.conf : null, on: !!s && s.conf !== "media"};
     }).sort((a, b) => grupo(a.conf) - grupo(b.conf) || a.n - b.n);
     desenhar();
@@ -159,8 +161,19 @@ export function openImportar(){
     if (jaImportada(nota.accessKey)) { toast("Esta nota já foi importada"); return; }
     const cnpj = fmtCnpj(nota.issuer.cnpj);
     const placeId = lugar.id || (lugar.vincular ? (setPlaceCnpj(lugar.vincular, cnpj), lugar.vincular) : addPlace(prettyName(nota.issuer.name) || "Local da nota", cnpj).id);
-    const at = Date.parse(nota.date) || Date.now();
-    for (const r of sel) { r.priceId = newId(); write("prices", r.priceId, {key: r.key, placeId, price: linePrice(r.line), at}, "set"); }
+    /* o preço da nota entra como o mais recente (at = agora) e passa na frente do digitado antes; a data da compra fica no histórico da nota */
+    const agora = Date.now();
+    for (const r of sel) { r.priceId = newId(); write("prices", r.priceId, {key: r.key, placeId, price: linePrice(r.line), at: agora}, "set"); }
+    /* dentro de uma lista: o que foi comprado e não está nela entra riscado (já comprado) */
+    let novos = 0;
+    if (listaId && S.lists.has(listaId)) {
+      const tem = new Set(itemsOf(listaId).map(i => keyOf(i.text)));
+      for (const r of sel) {
+        if (tem.has(r.key)) continue; tem.add(r.key);
+        const cat = guessCat(r.label) || "outros";
+        write("items", newId(), {listId: listaId, text: r.label, cat, order: nextOrderInCat(listaId, cat), checked: true, checkedAt: agora, createdAt: agora, by: S.myId || null}, "set"); novos++;
+      }
+    }
     const links = vinculos();
     for (const r of sel) {
       const ref = nota.issuer.cnpj + "|" + r.line.code;
@@ -171,7 +184,7 @@ export function openImportar(){
       lines: rows.slice().sort((a, b) => a.n - b.n).map(r => ({name: r.line.name, price: linePrice(r.line), label: r.on && r.key ? r.label : "", priceId: r.on && r.key ? r.priceId : null}))};
     write("nfce", refId("r", nota.accessKey), {kind: "receipt", ref: nota.accessKey, key: null, note}, "set");
     closeAll();
-    toast(`${sel.length} ${sel.length === 1 ? "preço atualizado" : "preços atualizados"}`);
+    toast(`${sel.length} ${sel.length === 1 ? "preço atualizado" : "preços atualizados"}${novos ? ` · ${novos} ${novos === 1 ? "item novo" : "itens novos"} na lista` : ""}`);
   }
   const closeAll = () => { parar(); closeSheet(); };
 

@@ -5,10 +5,13 @@ const latest = (prices, key, placeId) => {
   for (const p of prices) if (p.key === key && (placeId === undefined || p.placeId === placeId) && (!best || p.at >= best.at)) best = p;
   return best;
 };
-/* 1) mais recente no local padrão, 2) no alternativo, 3) em qualquer local, 4) null */
+/* o registro mais recente do item vale, venha de nota ou da mão e de qualquer local; empate: local padrão, depois o alternativo; sem registro: null */
 export function resolvePrice(key, def, fb, prices){
-  const p = (def && latest(prices, key, def)) || (fb && latest(prices, key, fb)) || latest(prices, key);
-  return p ? p.price : null;
+  const all = prices.filter(p => p.key === key); if (!all.length) return null;
+  const top = Math.max(...all.map(p => p.at));
+  const tie = all.filter(p => p.at === top);
+  const p = tie.find(x => def && x.placeId === def) || tie.find(x => fb && x.placeId === fb) || tie[0];
+  return p.price;
 }
 /* soma o que falta comprar (itens não riscados; preço da unidade × qty, que vale 1 se faltar); itens sem texto não contam; soma em centavos */
 export function forecast(items, prices, placeFor, keyOf){

@@ -702,6 +702,12 @@ function openMoveBlock(cid){
 }
 /* toque longo (550 ms) em `sel` (fora de `skip`); cancela se o dedo andar; o toque que o termina não vira clique */
 let lpTimer = null, lpDone = false, lpX = 0, lpY = 0;
+/* segurar um item ou bloco liga o modo Reordenar (as alças aparecem) */
+function enterReorder(){
+  if (S.reorder || S.readonly) return;
+  try { document.activeElement.blur(); } catch(e){}
+  S.reorder = true; selectCat(null); render();
+}
 function bindLongPress(view, sel, skip, onPress){
   const cancel = () => { clearTimeout(lpTimer); lpTimer = null; };
   view.addEventListener("pointerdown", e => {
@@ -850,9 +856,9 @@ export function bindEvents(){
   });
   /* o ⋮ aparece só com o item em edição: sem isto o campo perde o foco antes do clique e o botão some */
   listView.addEventListener("mousedown", e => { if (e.target.closest(".more")) e.preventDefault(); });
-  bindLongPress(listView, ".cat-head", ".cat-grip, .cat-toggle, .cat-check", h => openBlockMenu(h.closest(".cat").dataset.cat));
+  bindLongPress(listView, ".cat-head", ".cat-grip, .cat-toggle, .cat-check", enterReorder);
   /* segurar um item abre a escolha de categoria (a mesma folha do ⋮) */
-  bindLongPress(listView, ".item", ".check, .grip, .more", li => { try { document.activeElement.blur(); } catch(e){} openItemSheet(li.dataset.id); });
+  bindLongPress(listView, ".item", ".check, .grip, .more", enterReorder);
   bindLongPress($("homeBody"), ".lcard", null, c => openListCardMenu(c.dataset.open));
   listView.addEventListener("click", e => {
     const cc = e.target.closest(".cat-check"); if (cc) { toggleCat(cc.closest(".cat").dataset.cat); return; }
