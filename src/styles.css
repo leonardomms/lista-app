@@ -525,3 +525,27 @@ input.mono{font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase
 .item-actions .btn{flex:1}
 .item-actions .btn.primary{background:var(--field);color:var(--fg);border-color:var(--line-strong)}
 .item-actions .btn.danger{background:none;color:var(--danger);border-color:var(--line)}
+
+/* itens da categoria */
+.catrow .uses{display:inline-flex;align-items:center;gap:2px;height:36px;padding:0 6px 0 10px;border-radius:999px;color:var(--muted)}
+.catrow .uses svg{width:14px;height:14px}
+.ci-row{display:flex;align-items:center;gap:6px;min-height:56px;border-bottom:1px solid var(--line)}
+.ci-sel{width:44px;height:48px;display:grid;place-items:center;flex:none;color:transparent}
+.ci-sel::before{content:"";position:absolute;width:22px;height:22px;border-radius:7px;border:1.5px solid var(--line)}
+.ci-sel{position:relative}
+.ci-sel svg{position:relative}
+.ci-sel[aria-pressed="true"]::before{background:var(--accent);border-color:var(--accent)}
+.ci-sel[aria-pressed="true"]{color:#fff}
+.ci-main{flex:1;min-width:0;display:flex;flex-direction:column}
+.ci-name{height:30px;background:none;border:0;outline:none;font-size:16px;border-bottom:1px solid transparent;min-width:0}
+.ci-name:focus{border-bottom-color:var(--accent)}
+.ci-list{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ci-h{margin:18px 0 8px;font-size:13px;color:var(--muted);font-weight:500}
+.ci-words{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.ci-word{display:inline-flex;align-items:center;gap:4px;height:32px;padding:0 4px 0 12px;border-radius:999px;background:var(--field);border:1px solid var(--line);font-size:13px}
+.ci-word button{width:28px;height:28px;color:var(--muted);font-size:16px}
+.ci-bar{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.ci-bar span{flex:1;font-size:14px;color:var(--text-2)}
+.ci-add{display:flex;flex-direction:column;gap:8px;margin-bottom:12px}
+.ci-add select{height:44px;border-radius:999px;border:1px solid var(--line);background:var(--field);color:inherit;padding:0 16px;font-size:14px}
+.ci-add .newcat{margin:0}

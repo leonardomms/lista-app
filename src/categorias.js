@@ -3,7 +3,8 @@ import { S, $, esc } from "./estado.js";
 import { saveLocal, write, writeEnvConfig } from "./dados.js";
 import { render, openSheet, closeSheet, toast } from "./ui.js";
 import { openLocais } from "./locais.js";
-import { ICON_TRASH, ICON_UNDO, ICON_SPARK, ICON_CHEV, ICON_HOUSE } from "./icones.js";
+import { openCatItems } from "./catitens.js";
+import { ICON_CHEV_R, ICON_TRASH, ICON_UNDO, ICON_SPARK, ICON_CHEV, ICON_HOUSE } from "./icones.js";
 
 /* ---------------- categorias ---------------- */
 export const DEFAULT_CATS = [
@@ -191,7 +192,7 @@ export function openCatManager(focusId){
       <div class="catrow">
         <button class="swbtn" data-act="pal" aria-label="Trocar cor de ${esc(c.name)}"><i style="--c:${esc(c.color)}"></i></button>
         <input class="catname" value="${esc(c.name)}" aria-label="Nome da categoria" autocomplete="off" enterkeyhint="done" maxlength="40">
-        <span class="uses" title="Itens nesta categoria">${uses(c.id)}</span>
+        <button class="uses" data-act="items" title="Ver e gerenciar os itens" aria-label="Itens de ${esc(c.name)}: ${uses(c.id)}">${uses(c.id)}${ICON_CHEV_R}</button>
         ${editMode && c.id !== "outros" ? `<button class="del" data-act="del" aria-label="Excluir ${esc(c.name)}">${ICON_TRASH}</button>` : ""}
       </div>
       ${openPal === c.id ? `<div class="palette">${PALETTE.map(col => `<button data-color="${col}" style="--c:${col}" aria-pressed="${col === c.color}" aria-label="Usar esta cor"></button>`).join("")}</div>` : ""}
@@ -214,6 +215,7 @@ export function openCatManager(focusId){
       if (b.dataset.color && w) { patchCat(w.dataset.cat, {color:b.dataset.color}); openPal = null; redraw(); return; }
       const a = b.dataset.act;
       if (a === "edit") { editMode = !editMode; confirmId = null; b.setAttribute("aria-pressed", String(editMode)); b.textContent = editMode ? "Pronto" : "Editar"; redraw(); }
+      else if (a === "items" && w) openCatItems(w.dataset.cat);
       else if (a === "pal" && w) { openPal = openPal === w.dataset.cat ? null : w.dataset.cat; redraw(); }
       else if (a === "del" && w) { confirmId = w.dataset.cat; redraw(); }
       else if (a === "del-no") { confirmId = null; redraw(); }

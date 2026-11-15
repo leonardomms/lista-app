@@ -10,4 +10,5 @@ Cada etapa em conversa própria. Ao terminar, registrar aqui e em "Progresso" no
 | 4 | Edge Function `nfce-parse` (lê NFC-e do RS: itens, preços em centavos, CNPJ/nome do emissor) | feito e no ar |
 | 5 | Importar nota: QR ou link/chave → `nfce-parse` → local pelo CNPJ → casamento das linhas com os itens → preços em `S.prices`; vínculos (CNPJ + código → item) e notas já importadas em `nfce_refs` | feito (rodar a migration `20261109140000_nfce_refs.sql`) |
 | 5b | Histórico de notas, item novo na conferência, valores sutis na lista (item, categoria, estimativa) com toggle e preço manual | feito (rodar a migration `20261110120000_nfce_notes.sql`) |
+| 5c | Itens por categoria: número da categoria abre a tela de itens (ver, renomear, mover, excluir, adicionar, palavras aprendidas); só interface, sem migration | feito (testar no aparelho) |
 | 6 | Importar o PDF da nota (plano C, quando o QR/link não abrir): ler o texto do PDF que o site da Sefaz gera, sem IA, e entregar o mesmo `{issuer, date, accessKey, items, total}` ao fluxo do Estágio 5 | a fazer |
