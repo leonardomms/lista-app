@@ -9,6 +9,7 @@ import { keyOf, guessCat } from "./categorias.js";
 import { placesList, addPlace, setPlaceCnpj } from "./locais.js";
 import * as D from "./data.js";
 import { fmt } from "./precos.js";
+import { logTrip } from "./sugestoes.js";
 import { temCamera, lerQR } from "./qr.js";
 import { chaveDe, matchAll, rank, linePrice, findPlaceByCnpj, suggestPlaceLink, prettyName } from "./nfcematch.js";
 
@@ -165,16 +166,21 @@ export function openImportar(){
     const agora = Date.now();
     for (const r of sel) { r.priceId = newId(); write("prices", r.priceId, {key: r.key, placeId, price: linePrice(r.line), at: agora}, "set"); }
     /* dentro de uma lista: o que foi comprado e não está nela entra riscado (já comprado) */
-    let novos = 0;
+    let novos = 0, concluida = false;
     if (listaId && S.lists.has(listaId)) {
       const existentes = itemsOf(listaId), tem = new Set(existentes.map(i => keyOf(i.text)));
       for (const r of sel) {
-        const ja = existentes.find(i => keyOf(i.text) === r.key && !i.checked);
-        if (ja) { write("items", ja.id, {checked: true, checkedAt: agora}, "patch"); continue; }   // comprado: risca o que já estava na lista
+        const ja = existentes.find(i => keyOf(i.text) === r.key);
+        /* comprado: risca o que já estava na lista; se já estava riscado (outra nota da mesma compra), só renova a data para o preço novo valer na lista concluída */
+        if (ja) { write("items", ja.id, {checked: true, checkedAt: agora}, "patch"); continue; }
         if (tem.has(r.key)) continue; tem.add(r.key);
         const cat = guessCat(r.label) || "outros";
         write("items", newId(), {listId: listaId, text: r.label, cat, order: nextOrderInCat(listaId, cat), checked: true, checkedAt: agora, createdAt: agora, by: S.myId || null}, "set"); novos++;
       }
+      /* tudo riscado: a compra termina como se o último item tivesse sido riscado à mão (histórico e sugestões incluídos) */
+      const l = S.lists.get(listaId), final = itemsOf(listaId).filter(i => (i.text || "").trim());
+      const vivos = new Set(sel.map(r => r.key));
+      if (l && !l.done && final.length && final.every(i => i.checked || vivos.has(keyOf(i.text)))) { logTrip(listaId); write("lists", listaId, {done: true}, "patch"); concluida = true; }
     }
     const links = vinculos();
     for (const r of sel) {
@@ -186,7 +192,7 @@ export function openImportar(){
       lines: rows.slice().sort((a, b) => a.n - b.n).map(r => ({name: r.line.name, price: linePrice(r.line), label: r.on && r.key ? r.label : "", priceId: r.on && r.key ? r.priceId : null}))};
     write("nfce", refId("r", nota.accessKey), {kind: "receipt", ref: nota.accessKey, key: null, note}, "set");
     closeAll();
-    toast(`${sel.length} ${sel.length === 1 ? "preço atualizado" : "preços atualizados"}${novos ? ` · ${novos} ${novos === 1 ? "item novo" : "itens novos"} na lista` : ""}`);
+    toast(`${sel.length} ${sel.length === 1 ? "preço atualizado" : "preços atualizados"}${novos ? ` · ${novos} ${novos === 1 ? "item novo" : "itens novos"} na lista` : ""}${concluida ? " · Compra finalizada" : ""}`);
   }
   const closeAll = () => { parar(); closeSheet(); };
 
